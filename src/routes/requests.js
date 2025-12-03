@@ -20,8 +20,11 @@ const baseValidations = [
     .withMessage('contactPhone should be at least 5 characters'),
   body('requestTypeId').optional().toInt().isInt({ min: 1 }).withMessage('requestTypeId must be numeric'),
   body('requestTopicId').optional().toInt().isInt({ min: 1 }).withMessage('requestTopicId must be numeric'),
+  body('receiptFormId').optional().toInt().isInt({ min: 1 }).withMessage('receiptFormId must be numeric'),
   body('dueDate').optional().isISO8601().withMessage('dueDate must be ISO8601 date'),
-  body('priority').optional().isIn(PRIORITIES).withMessage('priority is invalid'),
+  body('priorityId').optional().toInt().isInt({ min: 1 }).withMessage('priorityId must be numeric'),
+  body('priority').optional().toInt().isInt({ min: 1 }).withMessage('priority must be numeric'),
+  body('executorId').optional().toInt().isInt({ min: 1 }).withMessage('executorId must be numeric'),
   body('status').optional().isIn(REQUEST_STATUSES).withMessage('status is invalid')
 ];
 

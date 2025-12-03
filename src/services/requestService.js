@@ -1,5 +1,5 @@
 const { insertRequest, updateRequest, getRequestById, listRequests, insertFiles, getFilesByRequestId, getFileById, logAction } = require('../models/requestModel');
-const { findTypeById, findTopicById } = require('../models/nomenclatureModel');
+const { findTypeById, findTopicById, findPriorityById } = require('../models/nomenclatureModel');
 const { calculateControlStatus } = require('../utils/deadline');
 const { notifyDeadlineStatus } = require('../utils/notifications');
 const { clean } = require('../utils/sanitize');
@@ -8,7 +8,8 @@ const { getDb } = require('../db');
 
 async function createRequest(payload, files = []) {
   await ensureTypeAndTopic(payload);
-  validateStatusAndPriority(payload);
+  await ensurePriority(payload);
+  validateStatus(payload);
 
   const sanitized = sanitizePayload(payload);
   const now = new Date().toISOString();
@@ -33,7 +34,10 @@ async function updateRequestById(id, payload, files = []) {
   if (payload.requestTypeId || payload.requestTopicId) {
     await ensureTypeAndTopic(payload);
   }
-  validateStatusAndPriority(payload);
+  if (payload.priorityId || payload.priority) {
+    await ensurePriority(payload);
+  }
+  validateStatus(payload);
 
   const attachments = await getFilesByRequestId(id);
   if (attachments.length + files.length > MAX_ATTACHMENTS) {
@@ -167,12 +171,23 @@ async function ensureTypeAndTopic(payload) {
   }
 }
 
-function validateStatusAndPriority(payload) {
+async function ensurePriority(payload) {
+  const priorityId = payload.priorityId || payload.priority;
+  if (priorityId !== undefined) {
+    const id = Number(priorityId);
+    if (Number.isNaN(id)) {
+      throw new Error('Invalid priority reference');
+    }
+    const priority = await findPriorityById(id);
+    if (!priority) {
+      throw new Error('Invalid priority reference');
+    }
+  }
+}
+
+function validateStatus(payload) {
   if (payload.status !== undefined && !REQUEST_STATUSES.includes(payload.status)) {
     throw new Error('Unsupported status value');
-  }
-  if (payload.priority !== undefined && !PRIORITIES.includes(payload.priority)) {
-    throw new Error('Unsupported priority value');
   }
 }
 
@@ -185,14 +200,16 @@ function sanitizePayload(payload, isUpdate = false) {
   if (has('contactEmail')) sanitized.contact_email = clean(payload.contactEmail);
   if (has('requestTypeId')) sanitized.request_type_id = Number(payload.requestTypeId);
   if (has('requestTopicId')) sanitized.request_topic_id = Number(payload.requestTopicId);
+  if (has('receiptFormId')) sanitized.receipt_form_id = Number(payload.receiptFormId);
   if (has('description')) sanitized.description = clean(payload.description);
   if (has('status')) sanitized.status = payload.status;
-  if (has('executor')) sanitized.executor = clean(payload.executor);
-  if (has('priority')) sanitized.priority = payload.priority;
+  if (has('executorId')) sanitized.executor_id = Number(payload.executorId);
+  if (has('priorityId')) sanitized.priority_id = Number(payload.priorityId);
+  else if (has('priority')) sanitized.priority_id = Number(payload.priority);
   if (has('dueDate')) sanitized.due_date = sanitizeDate(payload.dueDate);
   if (!isUpdate) {
     if (!sanitized.status) sanitized.status = 'new';
-    if (!sanitized.priority) sanitized.priority = 'medium';
+    if (!sanitized.priority_id) sanitized.priority_id = 3; // medium priority by default
   }
   return sanitized;
 }
@@ -211,8 +228,8 @@ function buildFilters(query) {
     typeId: parseId(query.type),
     topicId: parseId(query.topic),
     status: query.status,
-    executor: query.executor ? clean(query.executor) : undefined,
-    priority: query.priority,
+    executorId: parseId(query.executor),
+    priorityId: parseId(query.priority),
     dateFrom: query.date_from,
     dateTo: query.date_to,
     search: query.search ? clean(query.search) : undefined
@@ -221,8 +238,8 @@ function buildFilters(query) {
   if (filters.status && !REQUEST_STATUSES.includes(filters.status)) {
     filters.status = undefined;
   }
-  if (filters.priority && !PRIORITIES.includes(filters.priority)) {
-    filters.priority = undefined;
+  if (filters.priorityId && !Number.isNaN(filters.priorityId)) {
+    // Keep numeric priority ID as is
   }
 
   return filters;
@@ -265,12 +282,22 @@ function mapRequest(row, files) {
     requestTopic: row.request_topic_id
       ? { id: row.request_topic_id, name: row.request_topic_name }
       : null,
+    receiptForm: row.receipt_form_id
+      ? { id: row.receipt_form_id, name: row.receipt_form_name }
+      : null,
     description: row.description,
     status: row.status,
-    executor: row.executor,
-    priority: row.priority,
+    executorId: row.executor_id,
+    executor: row.executor_name || row.executor,
+    priorityId: row.priority_id,
+    priority: row.priority_name || row.priority,
     dueDate: row.due_date,
+    resolvedAt: row.resolved_at,
     controlStatus: row.control_status,
+    isOverdue: row.is_overdue,
+    externalId: row.external_id,
+    source: row.source,
+    createdBy: row.created_by,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     attachments: files.map((file) => ({

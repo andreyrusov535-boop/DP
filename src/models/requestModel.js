@@ -1,16 +1,16 @@
-const { getDb } = require('../db');
+const { dbService } = require('../db');
 
 const SORTABLE_FIELDS = {
   created_at: 'r.created_at',
   due_date: 'r.due_date',
-  priority: 'r.priority',
+  priority_id: 'r.priority_id',
   status: 'r.status',
   control_status: 'r.control_status',
-  citizen_fio: 'r.citizen_fio'
+  citizen_fio: 'r.citizen_fio',
+  is_overdue: 'r.is_overdue'
 };
 
 async function insertRequest(record) {
-  const db = getDb();
   const sql = `
     INSERT INTO requests (
       citizen_fio,
@@ -18,29 +18,37 @@ async function insertRequest(record) {
       contact_email,
       request_type_id,
       request_topic_id,
+      receipt_form_id,
       description,
       status,
-      executor,
-      priority,
+      executor_id,
+      priority_id,
       due_date,
       control_status,
+      external_id,
+      source,
+      created_by,
       created_at,
       updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
-  const result = await db.run(sql, [
+  const result = await dbService.execute(sql, [
     record.citizen_fio,
     record.contact_phone ?? null,
     record.contact_email ?? null,
     record.request_type_id ?? null,
     record.request_topic_id ?? null,
+    record.receipt_form_id ?? null,
     record.description ?? null,
     record.status,
-    record.executor ?? null,
-    record.priority,
+    record.executor_id ?? null,
+    record.priority_id,
     record.due_date ?? null,
     record.control_status,
+    record.external_id ?? null,
+    record.source ?? 'manual',
+    record.created_by ?? null,
     record.created_at,
     record.updated_at
   ]);
@@ -49,7 +57,6 @@ async function insertRequest(record) {
 }
 
 async function updateRequest(id, updates) {
-  const db = getDb();
   const fields = [];
   const values = [];
 
@@ -63,26 +70,36 @@ async function updateRequest(id, updates) {
   }
 
   values.push(id);
-  const sql = `UPDATE requests SET ${fields.join(', ')}, updated_at = ? WHERE id = ?`;
-  values.splice(values.length - 1, 0, new Date().toISOString());
-  const result = await db.run(sql, values);
+  const sql = `UPDATE requests SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+  const result = await dbService.execute(sql, values);
   return result.changes;
 }
 
 async function getRequestById(id) {
-  const db = getDb();
   const sql = `
-    SELECT r.*, t.name AS request_type_name, topic.name AS request_topic_name
+    SELECT r.*, 
+           rt.name AS request_type_name,
+           rt.code AS request_type_code,
+           topic.name AS request_topic_name,
+           topic.code AS request_topic_code,
+           rf.name AS receipt_form_name,
+           rf.code AS receipt_form_code,
+           p.name AS priority_name,
+           p.code AS priority_code,
+           u.full_name AS executor_name,
+           u.username AS executor_username
     FROM requests r
-    LEFT JOIN request_types t ON r.request_type_id = t.id
-    LEFT JOIN request_topics topic ON r.request_topic_id = topic.id
+    LEFT JOIN nomenclature rt ON r.request_type_id = rt.id
+    LEFT JOIN nomenclature topic ON r.request_topic_id = topic.id
+    LEFT JOIN nomenclature rf ON r.receipt_form_id = rf.id
+    LEFT JOIN nomenclature p ON r.priority_id = p.id
+    LEFT JOIN users u ON r.executor_id = u.id
     WHERE r.id = ?
   `;
-  return db.get(sql, id);
+  return dbService.getOne('get_request_by_id', [sql, id]);
 }
 
 async function listRequests({ filters, limit, offset, sortBy, sortOrder }) {
-  const db = getDb();
   const where = [];
   const params = [];
 
@@ -102,13 +119,13 @@ async function listRequests({ filters, limit, offset, sortBy, sortOrder }) {
     where.push('r.status = ?');
     params.push(filters.status);
   }
-  if (filters.executor) {
-    where.push('LOWER(r.executor) LIKE LOWER(?)');
-    params.push(`%${filters.executor}%`);
+  if (filters.executorId) {
+    where.push('r.executor_id = ?');
+    params.push(filters.executorId);
   }
-  if (filters.priority) {
-    where.push('r.priority = ?');
-    params.push(filters.priority);
+  if (filters.priorityId) {
+    where.push('r.priority_id = ?');
+    params.push(filters.priorityId);
   }
   if (filters.dateFrom) {
     where.push('date(r.due_date) >= date(?)');
@@ -122,12 +139,11 @@ async function listRequests({ filters, limit, offset, sortBy, sortOrder }) {
     const searchClause = [
       'LOWER(r.description) LIKE LOWER(?)',
       'LOWER(r.citizen_fio) LIKE LOWER(?)',
-      'LOWER(r.executor) LIKE LOWER(?)',
       'LOWER(r.contact_email) LIKE LOWER(?)'
     ].join(' OR ');
     where.push(`(${searchClause})`);
     const term = `%${filters.search}%`;
-    params.push(term, term, term, term);
+    params.push(term, term, term);
   }
 
   const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
@@ -136,20 +152,28 @@ async function listRequests({ filters, limit, offset, sortBy, sortOrder }) {
 
   const countSql = `SELECT COUNT(*) as total FROM requests r ${whereClause}`;
   const countParams = [...params];
-  const { total } = await db.get(countSql, countParams);
+  const { total } = await dbService.get(countSql, countParams);
 
   const dataSql = `
-    SELECT r.*, t.name AS request_type_name, topic.name AS request_topic_name
+    SELECT r.*, 
+           rt.name AS request_type_name,
+           topic.name AS request_topic_name,
+           rf.name AS receipt_form_name,
+           p.name AS priority_name,
+           u.full_name AS executor_name
     FROM requests r
-    LEFT JOIN request_types t ON r.request_type_id = t.id
-    LEFT JOIN request_topics topic ON r.request_topic_id = topic.id
+    LEFT JOIN nomenclature rt ON r.request_type_id = rt.id
+    LEFT JOIN nomenclature topic ON r.request_topic_id = topic.id
+    LEFT JOIN nomenclature rf ON r.receipt_form_id = rf.id
+    LEFT JOIN nomenclature p ON r.priority_id = p.id
+    LEFT JOIN users u ON r.executor_id = u.id
     ${whereClause}
     ORDER BY ${sortField} ${sortDirection}
     LIMIT ? OFFSET ?
   `;
 
   const dataParams = [...params, limit, offset];
-  const rows = await db.all(dataSql, dataParams);
+  const rows = await dbService.all(dataSql, dataParams);
   return { rows, total };
 }
 
@@ -157,44 +181,47 @@ async function insertFiles(records) {
   if (!records.length) {
     return;
   }
-  const db = getDb();
-  const stmt = await db.prepare(`
-    INSERT INTO files (request_id, original_name, stored_name, mime_type, size, created_at)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `);
-  try {
-    for (const record of records) {
-      await stmt.run(
-        record.request_id,
-        record.original_name,
-        record.stored_name,
-        record.mime_type,
-        record.size,
-        record.created_at
-      );
-    }
-  } finally {
-    await stmt.finalize();
+  const sql = `
+    INSERT INTO files (request_id, original_name, stored_name, mime_type, size, file_hash, description, category, uploaded_by, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `;
+  
+  for (const record of records) {
+    await dbService.execute(sql, [
+      record.request_id,
+      record.original_name,
+      record.stored_name,
+      record.mime_type,
+      record.size,
+      record.file_hash || null,
+      record.description || null,
+      record.category || 'attachment',
+      record.uploaded_by || null,
+      record.created_at
+    ]);
   }
 }
 
 async function getFilesByRequestId(requestId) {
-  const db = getDb();
-  return db.all(
-    'SELECT id, original_name, mime_type, size, created_at FROM files WHERE request_id = ? ORDER BY id ASC',
-    requestId
-  );
+  const sql = `
+    SELECT id, original_name, mime_type, size, file_hash, description, category, uploaded_by, created_at 
+    FROM files 
+    WHERE request_id = ? 
+    ORDER BY id ASC
+  `;
+  return dbService.all(sql, requestId);
 }
 
 async function getFileById(fileId) {
-  const db = getDb();
-  return db.get('SELECT * FROM files WHERE id = ?', fileId);
+  const sql = 'SELECT * FROM files WHERE id = ?';
+  return dbService.get(sql, fileId);
 }
 
 async function logAction(tableName, log) {
-  const db = getDb();
   const sql = `INSERT INTO ${tableName} (request_id, action, ${tableName === 'audit_log' ? 'payload' : 'notes'}, created_at) VALUES (?, ?, ?, ?)`;
-  return db.run(sql, [log.request_id, log.action, log.details, log.created_at]);
+  return dbService.execute(sql, [
+    log.request_id, log.action, log.details, log.created_at
+  ]);
 }
 
 module.exports = {

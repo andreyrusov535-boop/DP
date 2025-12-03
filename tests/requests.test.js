@@ -37,6 +37,7 @@ describe('Request workflow API', () => {
       .field('contactPhone', '555-1234')
       .field('requestTypeId', '1')
       .field('requestTopicId', '1')
+      .field('priorityId', '3') // medium priority
       .field('dueDate', dueDate)
       .attach('attachments', Buffer.from('file-1'), {
         filename: 'evidence.pdf',
@@ -47,9 +48,12 @@ describe('Request workflow API', () => {
         contentType: 'image/png'
       });
 
+    if (response.status !== 201) {
+      console.log('Error response:', response.body);
+    }
     expect(response.status).toBe(201);
     expect(response.body.attachments).toHaveLength(2);
-    expect(response.body.controlStatus).toBe('normal');
+    expect(response.body.controlStatus).toBe('no');
     expect(response.body.citizenFio).toBe('Jane Citizen');
   });
 
@@ -58,30 +62,30 @@ describe('Request workflow API', () => {
       citizenFio: 'Alice Example',
       description: 'Water pipeline broken',
       status: 'in_progress',
-      executor: 'Operator X',
-      priority: 'high',
+      executorId: 1, // admin user
+      priorityId: 2, // high priority
       dueDate: futureHours(4)
     });
     await createJsonRequest({
       citizenFio: 'Bob Example',
       description: 'Street lamp outage',
       status: 'new',
-      executor: 'Operator Y',
-      priority: 'medium',
+      executorId: 2, // water manager
+      priorityId: 3, // medium priority
       dueDate: futureHours(120)
     });
     await createJsonRequest({
       citizenFio: 'Charlie Example',
       description: 'General inquiry',
-      status: 'completed',
-      executor: 'Operator Z',
-      priority: 'low',
+      status: 'resolved',
+      executorId: 3, // roads manager
+      priorityId: 4, // low priority
       dueDate: pastHours(4)
     });
 
     const response = await request(app)
       .get('/api/requests')
-      .query({ status: 'in_progress', search: 'pipeline', executor: 'operator x', limit: 1, page: 1 });
+      .query({ status: 'in_progress', search: 'pipeline', executorId: '1', limit: 1, page: 1 });
 
     expect(response.status).toBe(200);
     expect(response.body.data).toHaveLength(1);
@@ -182,9 +186,9 @@ async function createJsonRequest(overrides = {}) {
     contactPhone: '555-0000',
     requestTypeId: 1,
     requestTopicId: 1,
-    executor: 'Operator Base',
+    executorId: 1, // admin user
     status: 'new',
-    priority: 'medium',
+    priorityId: 3, // medium priority
     dueDate: futureHours(96),
     ...overrides
   };
