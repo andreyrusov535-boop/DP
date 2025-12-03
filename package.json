@@ -9,7 +9,8 @@
     "test": "cross-env NODE_ENV=test jest --runInBand",
     "lint": "eslint src --fix",
     "migrate": "node scripts/migrate.js",
-    "seed": "node scripts/seed.js"
+    "seed": "node scripts/seed.js",
+    "smoke-test": "node scripts/smoke-test.js"
   },
   "keywords": [],
   "author": "",

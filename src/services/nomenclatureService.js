@@ -1,8 +1,21 @@
-const { getRequestTypes, getRequestTopics } = require('../models/nomenclatureModel');
+const { 
+  getRequestTypes, 
+  getRequestTopics, 
+  getTopicsByRequestType,
+  getReceiptForms,
+  getExecutors,
+  getPriorities
+} = require('../models/nomenclatureModel');
 
 async function fetchNomenclature() {
-  const [types, topics] = await Promise.all([getRequestTypes(), getRequestTopics()]);
-  return { types, topics };
+  const [types, topics, receiptForms, executors, priorities] = await Promise.all([
+    getRequestTypes(), 
+    getRequestTopics(), 
+    getReceiptForms(),
+    getExecutors(),
+    getPriorities()
+  ]);
+  return { types, topics, receiptForms, executors, priorities };
 }
 
 async function fetchTypes() {
@@ -13,8 +26,28 @@ async function fetchTopics() {
   return getRequestTopics();
 }
 
+async function fetchTopicsByType(requestTypeId) {
+  return getTopicsByRequestType(requestTypeId);
+}
+
+async function fetchReceiptForms() {
+  return getReceiptForms();
+}
+
+async function fetchExecutors() {
+  return getExecutors();
+}
+
+async function fetchPriorities() {
+  return getPriorities();
+}
+
 module.exports = {
   fetchNomenclature,
   fetchTypes,
-  fetchTopics
+  fetchTopics,
+  fetchTopicsByType,
+  fetchReceiptForms,
+  fetchExecutors,
+  fetchPriorities
 };
