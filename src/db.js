@@ -39,6 +39,17 @@ async function closeDb() {
 
 async function createSchema() {
   await dbInstance.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      name TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'citizen',
+      status TEXT NOT NULL DEFAULT 'active',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS request_types (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       code TEXT UNIQUE NOT NULL,
@@ -85,11 +96,14 @@ async function createSchema() {
 
     CREATE TABLE IF NOT EXISTS audit_log (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      request_id INTEGER NOT NULL,
+      user_id INTEGER,
+      request_id INTEGER,
       action TEXT NOT NULL,
+      entity_type TEXT,
       payload TEXT,
       created_at TEXT NOT NULL,
-      FOREIGN KEY (request_id) REFERENCES requests(id) ON DELETE CASCADE
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+      FOREIGN KEY (request_id) REFERENCES requests(id) ON DELETE SET NULL
     );
 
     CREATE TABLE IF NOT EXISTS request_proceedings (
@@ -101,6 +115,9 @@ async function createSchema() {
       FOREIGN KEY (request_id) REFERENCES requests(id) ON DELETE CASCADE
     );
 
+    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+    CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+    CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
     CREATE INDEX IF NOT EXISTS idx_requests_citizen_fio ON requests(citizen_fio);
     CREATE INDEX IF NOT EXISTS idx_requests_type ON requests(request_type_id);
     CREATE INDEX IF NOT EXISTS idx_requests_topic ON requests(request_topic_id);
@@ -108,6 +125,8 @@ async function createSchema() {
     CREATE INDEX IF NOT EXISTS idx_requests_executor ON requests(executor);
     CREATE INDEX IF NOT EXISTS idx_requests_due_date ON requests(due_date);
     CREATE INDEX IF NOT EXISTS idx_requests_control_status ON requests(control_status);
+    CREATE INDEX IF NOT EXISTS idx_audit_log_user_id ON audit_log(user_id);
+    CREATE INDEX IF NOT EXISTS idx_audit_log_action ON audit_log(action);
   `);
 }
 
