@@ -1,0 +1,27 @@
+{
+  "name": "request-management-api",
+  "version": "1.0.0",
+  "description": "Request workflow API with deadline control and file handling",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "cross-env NODE_ENV=test jest --runInBand"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cross-env": "7.0.3",
+    "express": "4.19.2",
+    "express-validator": "7.0.1",
+    "multer": "1.4.5-lts.1",
+    "node-cron": "3.0.3",
+    "sanitize-html": "2.12.1",
+    "sqlite": "5.1.1",
+    "sqlite3": "5.1.7"
+  },
+  "devDependencies": {
+    "jest": "29.7.0",
+    "supertest": "6.3.4"
+  }
+}

@@ -114,6 +114,24 @@ The frontend expects a backend API at `http://localhost:3000/api` with the follo
 ### Statistics
 - `GET /api/stats/overview` - Get dashboard statistics
 
+## Backend API Server
+
+A production-ready Express + SQLite service that fulfills the dashboard contract ships with this repository.
+
+- **Location**: `/src`, entry point `src/server.js`
+- **Install & Run**: `npm install && npm start` (defaults to port `3000`)
+- **Tests**: `npm test` (Jest + Supertest integration suite)
+- **Detailed spec**: [`API_SPEC.md`](./API_SPEC.md)
+
+### Key Capabilities
+- Request domain model covering citizen FIO, contact data, type/topic references, description, status, executor, priority, due date, and computed control status
+- Express-validator + sanitize-html input hardening on every write
+- Filtering, search, pagination, and sorting backed by DB indexes for performant queries
+- Attachment pipeline (≤5 files/request, JPEG/PNG/GIF/PDF, ≤10 MB each) with persistent metadata and secure download endpoints
+- Deadline control recalculated on read/write plus a scheduled cron refresh and notification hooks for approaching/overdue deadlines
+- Audit trails recorded in both `audit_log` and `request_proceedings` tables for every mutation
+- Nomenclature endpoints for request types/topics used by the frontend filters
+
 ## JWT Storage Strategy
 
 The application uses a hybrid approach for JWT token management:

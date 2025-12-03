@@ -49,3 +49,8 @@ Thumbs.db
 *.bak
 *.backup
 *~
+
+# Runtime data
+uploads/
+uploads_test/
+data/
