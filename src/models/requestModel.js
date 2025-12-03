@@ -181,7 +181,7 @@ async function insertFiles(records) {
 async function getFilesByRequestId(requestId) {
   const db = getDb();
   return db.all(
-    `SELECT id, original_name, mime_type, size, created_at FROM files WHERE request_id = ? ORDER BY id ASC`,
+    'SELECT id, original_name, mime_type, size, created_at FROM files WHERE request_id = ? ORDER BY id ASC',
     requestId
   );
 }
