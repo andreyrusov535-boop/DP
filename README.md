@@ -116,21 +116,135 @@ The frontend expects a backend API at `http://localhost:3000/api` with the follo
 
 ## Backend API Server
 
-A production-ready Express + SQLite service that fulfills the dashboard contract ships with this repository.
+A production-ready Express 4.18+ Node.js 18+ API with SQLite database that fulfills the dashboard contract ships with this repository.
 
-- **Location**: `/src`, entry point `src/server.js`
-- **Install & Run**: `npm install && npm start` (defaults to port `3000`)
-- **Tests**: `npm test` (Jest + Supertest integration suite)
-- **Detailed spec**: [`API_SPEC.md`](./API_SPEC.md)
+### Quick Start
 
-### Key Capabilities
-- Request domain model covering citizen FIO, contact data, type/topic references, description, status, executor, priority, due date, and computed control status
-- Express-validator + sanitize-html input hardening on every write
-- Filtering, search, pagination, and sorting backed by DB indexes for performant queries
-- Attachment pipeline (≤5 files/request, JPEG/PNG/GIF/PDF, ≤10 MB each) with persistent metadata and secure download endpoints
-- Deadline control recalculated on read/write plus a scheduled cron refresh and notification hooks for approaching/overdue deadlines
-- Audit trails recorded in both `audit_log` and `request_proceedings` tables for every mutation
-- Nomenclature endpoints for request types/topics used by the frontend filters
+```bash
+# Install dependencies
+npm install
+
+# Setup environment (optional - sensible defaults provided)
+cp .env.example .env
+
+# Run database migrations
+npm run migrate
+
+# Development mode (with auto-reload via nodemon)
+npm run dev
+
+# Production mode
+npm start
+
+# Run tests
+npm test
+
+# Lint with auto-fix
+npm run lint
+```
+
+### Features & Capabilities
+
+- **Request domain model**: Citizen FIO, contact data, type/topic references, description, status, executor, priority, due date, and computed control status
+- **Security hardening**: Helmet for HTTP headers, CORS support, rate limiting (100 req/15min), input validation with express-validator, HTML sanitization
+- **File management**: Multer-based attachment pipeline (≤5 files/request, JPEG/PNG/GIF/PDF, ≤10 MB each) with persistent metadata and secure download endpoints
+- **Data querying**: Filtering, search, pagination, and sorting backed by DB indexes for performant queries
+- **Deadline management**: Automatic deadline status calculation on read/write with scheduled cron refresh (Node-cron) and notification hooks for approaching/overdue deadlines
+- **Audit logging**: Comprehensive audit trails in `audit_log` and `request_proceedings` tables for every mutation
+- **Reference data**: Nomenclature endpoints for request types/topics used by the frontend filters
+- **Compression**: Response compression with gzip for bandwidth optimization
+- **Logging**: Morgan-based HTTP request logging
+
+### Configuration
+
+Environment variables (see `.env.example` for defaults):
+
+```env
+# Server
+PORT=3000
+NODE_ENV=development
+
+# Database
+DB_PATH=./data/requests.sqlite
+
+# JWT
+JWT_SECRET=your-secret-key-change-in-production
+JWT_EXPIRY=15m
+JWT_REFRESH_EXPIRY=7d
+
+# Bcrypt
+BCRYPT_ROUNDS=10
+
+# Rate Limiting
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
+
+# File Upload
+MAX_FILE_SIZE=10485760
+MAX_ATTACHMENTS=5
+UPLOAD_DIR=./uploads
+```
+
+### Non-Functional Requirements
+
+- **Response Time**: ≤2 seconds for API responses under normal load
+- **Concurrency**: Supports ≤100 concurrent users
+- **Database**: SQLite with automatic connection pooling and prepared statements
+- **Health Check**: `/health` endpoint returns `{"status":"ok"}` with 200 status code
+
+### API Endpoints
+
+**Health Check**
+- `GET /health` - Returns server health status (200 OK)
+
+**Authentication** (to be implemented)
+- `POST /api/auth/login` - Login with email/password
+- `POST /api/auth/register` - Register new account
+- `POST /api/auth/refresh` - Refresh access token
+
+**Requests**
+- `GET /api/requests` - List requests (with optional filters)
+- `GET /api/requests/:id` - Get request details
+- `POST /api/requests` - Create new request
+- `PUT /api/requests/:id` - Update request
+- `DELETE /api/requests/:id` - Delete request
+- `POST /api/requests/:id/assign` - Assign executor
+- `PATCH /api/requests/:id/status` - Update status
+
+**Statistics** (to be implemented)
+- `GET /api/stats/overview` - Get dashboard statistics
+
+**Nomenclature**
+- `GET /api/nomenclature/*` - Reference data endpoints
+
+**Files**
+- File upload and download endpoints via `/api/files`
+
+### Project Structure
+
+```
+src/
+├── server.js           # Application entry point
+├── app.js              # Express app configuration with middleware
+├── config.js           # Environment configuration management
+├── db.js               # Database initialization and connection
+├── middleware/         # Express middleware (upload, validation)
+├── models/             # Database models
+├── routes/             # API route definitions
+├── services/           # Business logic services
+├── jobs/               # Scheduled tasks (deadline refresh)
+├── utils/              # Utility functions
+└── public/             # Static files serving
+tests/
+├── ...                 # Integration tests (Jest + Supertest)
+scripts/
+├── migrate.js          # Database migration script
+└── seed.js             # Database seeding script
+```
+
+### Detailed Specification
+
+See [`API_SPEC.md`](./API_SPEC.md) for comprehensive API documentation.
 
 ## JWT Storage Strategy
 
@@ -234,8 +348,22 @@ The Utils module provides common functions for:
 
 ## Getting Started
 
-1. Ensure backend is running at `http://localhost:3000`
-2. Open `public/index.html` in a browser
+### Starting the Backend Server
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server (with auto-reload)
+npm run dev
+```
+
+The API will be available at `http://localhost:3000` with health check at `http://localhost:3000/health`
+
+### Accessing the Frontend
+
+1. Ensure backend is running at `http://localhost:3000` (see above)
+2. Open `public/index.html` in a browser (or serve it via a web server)
 3. Register or login with credentials
 4. Start managing requests!
 
