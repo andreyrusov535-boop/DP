@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Request Management Dashboard</title>
+    <link rel="stylesheet" href="/styles/main.css">
+    <link rel="stylesheet" href="/styles/responsive.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Auth view -->
+        <div id="auth-view" class="view auth-view">
+            <div class="auth-container">
+                <div class="auth-card">
+                    <h1>Request Management System</h1>
+                    
+                    <div class="auth-tabs">
+                        <button id="login-tab" class="auth-tab-btn active" data-tab="login">Login</button>
+                        <button id="register-tab" class="auth-tab-btn" data-tab="register">Register</button>
+                    </div>
+
+                    <!-- Login Form -->
+                    <form id="login-form" class="auth-form active">
+                        <div class="form-group">
+                            <label for="login-email">Email</label>
+                            <input type="email" id="login-email" name="email" required aria-label="Email address" />
+                        </div>
+                        <div class="form-group">
+                            <label for="login-password">Password</label>
+                            <input type="password" id="login-password" name="password" required aria-label="Password" />
+                        </div>
+                        <button type="submit" class="btn btn-primary" aria-label="Login to account">Login</button>
+                        <div id="login-message" class="message"></div>
+                    </form>
+
+                    <!-- Register Form -->
+                    <form id="register-form" class="auth-form">
+                        <div class="form-group">
+                            <label for="register-name">Name</label>
+                            <input type="text" id="register-name" name="name" required aria-label="Full name" />
+                        </div>
+                        <div class="form-group">
+                            <label for="register-email">Email</label>
+                            <input type="email" id="register-email" name="email" required aria-label="Email address" />
+                        </div>
+                        <div class="form-group">
+                            <label for="register-password">Password</label>
+                            <input type="password" id="register-password" name="password" required aria-label="Password" />
+                        </div>
+                        <div class="form-group">
+                            <label for="register-password-confirm">Confirm Password</label>
+                            <input type="password" id="register-password-confirm" name="password_confirm" required aria-label="Confirm password" />
+                        </div>
+                        <div class="form-group">
+                            <label for="register-role">Role</label>
+                            <select id="register-role" name="role" required aria-label="User role">
+                                <option value="">-- Select a role --</option>
+                                <option value="citizen">Citizen</option>
+                                <option value="operator">Operator</option>
+                                <option value="supervisor">Supervisor</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary" aria-label="Create new account">Register</button>
+                        <div id="register-message" class="message"></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard view -->
+        <div id="dashboard-view" class="view dashboard-view" style="display: none;">
+            <!-- Header -->
+            <header class="dashboard-header">
+                <div class="header-content">
+                    <h1>Request Management Dashboard</h1>
+                    <div class="user-profile">
+                        <span id="user-name" class="user-name">User</span>
+                        <span id="user-role" class="user-role badge">operator</span>
+                        <button id="logout-btn" class="btn btn-secondary btn-sm" aria-label="Logout">Logout</button>
+                    </div>
+                </div>
+            </header>
+
+            <div class="dashboard-container">
+                <!-- Sidebar -->
+                <aside class="dashboard-sidebar">
+                    <nav class="sidebar-nav">
+                        <button id="nav-dashboard" class="nav-item active" data-section="overview" aria-label="Dashboard overview">
+                            Dashboard
+                        </button>
+                        <button id="nav-requests" class="nav-item" data-section="requests" aria-label="View requests">
+                            Requests
+                        </button>
+                        <button id="nav-create" class="nav-item" data-section="create" aria-label="Create new request">
+                            Create Request
+                        </button>
+                    </nav>
+                </aside>
+
+                <!-- Main Content -->
+                <main class="dashboard-main">
+                    <!-- Overview Section -->
+                    <section id="overview-section" class="section active">
+                        <h2>Dashboard Overview</h2>
+                        <div class="reporting-widgets">
+                            <div class="widget">
+                                <h3>Requests by Status</h3>
+                                <div id="status-counts" class="widget-content">
+                                    <div class="stat-item">
+                                        <span class="stat-label">New</span>
+                                        <span class="stat-value" id="count-new">0</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-label">In Progress</span>
+                                        <span class="stat-value" id="count-in_progress">0</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-label">Completed</span>
+                                        <span class="stat-value" id="count-completed">0</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-label">Cancelled</span>
+                                        <span class="stat-value" id="count-cancelled">0</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="widget">
+                                <h3>Requests by Type</h3>
+                                <div id="type-counts" class="widget-content">
+                                    <!-- Populated dynamically -->
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Requests Section -->
+                    <section id="requests-section" class="section">
+                        <div class="section-header">
+                            <h2>Requests</h2>
+                            <button id="create-request-btn" class="btn btn-primary" aria-label="Create new request">Create Request</button>
+                        </div>
+
+                        <!-- Filters -->
+                        <div class="filters-container">
+                            <div class="filter-group">
+                                <label for="filter-type">Type</label>
+                                <select id="filter-type" aria-label="Filter by request type">
+                                    <option value="">All Types</option>
+                                    <option value="repair">Repair</option>
+                                    <option value="maintenance">Maintenance</option>
+                                    <option value="installation">Installation</option>
+                                    <option value="inspection">Inspection</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+
+                            <div class="filter-group">
+                                <label for="filter-status">Status</label>
+                                <select id="filter-status" aria-label="Filter by status">
+                                    <option value="">All Status</option>
+                                    <option value="new">New</option>
+                                    <option value="in_progress">In Progress</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="cancelled">Cancelled</option>
+                                </select>
+                            </div>
+
+                            <div class="filter-group">
+                                <label for="filter-executor">Executor</label>
+                                <input type="text" id="filter-executor" placeholder="Search by executor..." aria-label="Filter by executor name" />
+                            </div>
+
+                            <div class="filter-group">
+                                <label for="filter-date-from">Date From</label>
+                                <input type="date" id="filter-date-from" aria-label="Filter from date" />
+                            </div>
+
+                            <div class="filter-group">
+                                <label for="filter-date-to">Date To</label>
+                                <input type="date" id="filter-date-to" aria-label="Filter to date" />
+                            </div>
+
+                            <div class="filter-group">
+                                <label for="filter-search">Search</label>
+                                <input type="text" id="filter-search" placeholder="Search requests..." aria-label="Search requests" />
+                            </div>
+
+                            <button id="filter-apply-btn" class="btn btn-primary" aria-label="Apply filters">Apply Filters</button>
+                            <button id="filter-reset-btn" class="btn btn-secondary" aria-label="Reset filters">Reset</button>
+                        </div>
+
+                        <!-- Loading state -->
+                        <div id="loading-indicator" class="loading-indicator" style="display: none;" aria-label="Loading requests">
+                            <div class="spinner"></div>
+                            <p>Loading requests...</p>
+                        </div>
+
+                        <!-- Requests List -->
+                        <div id="requests-list" class="requests-list">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </section>
+
+                    <!-- Create Request Section -->
+                    <section id="create-section" class="section">
+                        <h2>Create New Request</h2>
+                        <form id="create-request-form" class="request-form">
+                            <div class="form-group">
+                                <label for="create-type">Type *</label>
+                                <select id="create-type" name="type" required aria-label="Request type">
+                                    <option value="">-- Select Type --</option>
+                                    <option value="repair">Repair</option>
+                                    <option value="maintenance">Maintenance</option>
+                                    <option value="installation">Installation</option>
+                                    <option value="inspection">Inspection</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="create-description">Description *</label>
+                                <textarea id="create-description" name="description" required rows="5" aria-label="Request description"></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="create-location">Location *</label>
+                                <input type="text" id="create-location" name="location" required aria-label="Request location" />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="create-deadline">Deadline</label>
+                                <input type="datetime-local" id="create-deadline" name="deadline" aria-label="Request deadline" />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="create-attachment">Attachment (Optional)</label>
+                                <input type="file" id="create-attachment" name="attachment" aria-label="Upload attachment (max 10MB, jpg/png/pdf)" />
+                                <small>Max size: 10MB. Allowed: JPG, PNG, PDF</small>
+                                <div id="file-validation-error" class="validation-error" style="display: none;"></div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary" aria-label="Submit request">Create Request</button>
+                            <div id="create-message" class="message"></div>
+                        </form>
+                    </section>
+
+                    <!-- Edit Request Modal -->
+                    <div id="edit-modal" class="modal" style="display: none;">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h2>Edit Request</h2>
+                                <button id="edit-modal-close" class="btn btn-close" aria-label="Close modal">&times;</button>
+                            </div>
+                            <form id="edit-request-form" class="request-form">
+                                <input type="hidden" id="edit-request-id" name="id" />
+                                
+                                <div class="form-group">
+                                    <label for="edit-type">Type *</label>
+                                    <select id="edit-type" name="type" required aria-label="Request type">
+                                        <option value="repair">Repair</option>
+                                        <option value="maintenance">Maintenance</option>
+                                        <option value="installation">Installation</option>
+                                        <option value="inspection">Inspection</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="edit-description">Description *</label>
+                                    <textarea id="edit-description" name="description" required rows="5" aria-label="Request description"></textarea>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="edit-location">Location *</label>
+                                    <input type="text" id="edit-location" name="location" required aria-label="Request location" />
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="edit-deadline">Deadline</label>
+                                    <input type="datetime-local" id="edit-deadline" name="deadline" aria-label="Request deadline" />
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="edit-status">Status *</label>
+                                    <select id="edit-status" name="status" required aria-label="Request status">
+                                        <option value="new">New</option>
+                                        <option value="in_progress">In Progress</option>
+                                        <option value="completed">Completed</option>
+                                        <option value="cancelled">Cancelled</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="edit-executor">Executor</label>
+                                    <input type="text" id="edit-executor" name="executor" aria-label="Assigned executor" />
+                                </div>
+
+                                <button type="submit" class="btn btn-primary" aria-label="Save changes">Save Changes</button>
+                                <div id="edit-message" class="message"></div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- View Request Modal -->
+                    <div id="view-modal" class="modal" style="display: none;">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h2>Request Details</h2>
+                                <button id="view-modal-close" class="btn btn-close" aria-label="Close modal">&times;</button>
+                            </div>
+                            <div id="view-content" class="modal-body">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notification-container" class="notification-container"></div>
+
+    <script src="/js/config.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/utils.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>
