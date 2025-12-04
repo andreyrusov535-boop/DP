@@ -837,3 +837,202 @@ textarea {
 .empty-state p {
     margin: 0;
 }
+
+/* Reports Section */
+.report-filters-container {
+    background-color: var(--surface-color);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.report-filters-container h3 {
+    margin-bottom: var(--spacing-md);
+}
+
+.export-buttons {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+/* KPI Cards */
+.kpi-cards {
+    background-color: var(--surface-color);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-md);
+}
+
+.kpi-card {
+    background-color: var(--surface-color);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    border-left: 4px solid var(--primary-color);
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.kpi-card-primary {
+    border-left-color: var(--primary-color);
+}
+
+.kpi-card-success {
+    border-left-color: var(--success-color);
+}
+
+.kpi-card-warning {
+    border-left-color: var(--warning-color);
+}
+
+.kpi-card-danger {
+    border-left-color: var(--danger-color);
+}
+
+.kpi-card-info {
+    border-left-color: var(--info-color);
+}
+
+.kpi-card-secondary {
+    border-left-color: var(--secondary-color);
+}
+
+.kpi-icon {
+    font-size: 2rem;
+    line-height: 1;
+}
+
+.kpi-content {
+    flex: 1;
+}
+
+.kpi-title {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.kpi-value {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+}
+
+.kpi-subtitle {
+    font-size: 0.75rem;
+    color: var(--text-light);
+    margin-top: var(--spacing-xs);
+}
+
+/* Charts Container */
+.charts-container {
+    background-color: var(--surface-color);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.charts-container > div:not(:last-child) {
+    margin-bottom: var(--spacing-xl);
+}
+
+.chart-wrapper {
+    position: relative;
+}
+
+.chart-wrapper h3 {
+    margin-bottom: var(--spacing-md);
+}
+
+.chart-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+.chart-controls label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0;
+}
+
+.chart-controls select {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    font-size: 0.875rem;
+}
+
+.chart-container {
+    position: relative;
+    height: 300px;
+    max-height: 400px;
+}
+
+.chart-container canvas {
+    max-height: 100%;
+}
+
+/* Trends Table */
+.trends-container {
+    background-color: var(--surface-color);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.trends-container h3 {
+    margin-bottom: var(--spacing-md);
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+.trends-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.trends-table th {
+    background-color: var(--background-color);
+    padding: var(--spacing-md);
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid var(--border-color);
+    white-space: nowrap;
+}
+
+.trends-table td {
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.trends-table tbody tr:hover {
+    background-color: var(--background-color);
+}
+
+.trends-table tbody tr:last-child td {
+    border-bottom: none;
+}

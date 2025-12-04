@@ -348,6 +348,115 @@ const UI = (() => {
         if (form) form.reset();
     };
 
+    const showReportLoadingState = (show = true) => {
+        const loadingIndicator = document.getElementById('report-loading-indicator');
+        if (loadingIndicator) {
+            loadingIndicator.style.display = show ? 'flex' : 'none';
+        }
+    };
+
+    const renderKpiCards = (overview) => {
+        const container = document.getElementById('kpi-grid');
+        const cardsContainer = document.getElementById('kpi-cards-container');
+        
+        if (!container || !overview) return;
+
+        const total = overview.total || 0;
+        const byStatus = overview.byStatus || [];
+        const byType = overview.byType || [];
+        const byPriority = overview.byPriority || [];
+
+        const cards = [
+            {
+                title: 'Total Requests',
+                value: Utils.formatNumber(total),
+                icon: '📊',
+                color: 'primary',
+            },
+        ];
+
+        byStatus.forEach(item => {
+            cards.push({
+                title: Utils.capitalizeFirstLetter(item.status.replace('_', ' ')),
+                value: Utils.formatNumber(item.count),
+                subtitle: Utils.formatPercentage(item.count, total),
+                icon: getStatusIcon(item.status),
+                color: getStatusColor(item.status),
+            });
+        });
+
+        container.innerHTML = cards.map(card => `
+            <div class="kpi-card kpi-card-${card.color}" role="article" aria-label="${card.title}: ${card.value}">
+                <div class="kpi-icon">${card.icon}</div>
+                <div class="kpi-content">
+                    <div class="kpi-title">${card.title}</div>
+                    <div class="kpi-value">${card.value}</div>
+                    ${card.subtitle ? `<div class="kpi-subtitle">${card.subtitle}</div>` : ''}
+                </div>
+            </div>
+        `).join('');
+
+        cardsContainer.style.display = 'block';
+    };
+
+    const getStatusIcon = (status) => {
+        const icons = {
+            'new': '🆕',
+            'in_progress': '⚙️',
+            'completed': '✅',
+            'cancelled': '❌',
+        };
+        return icons[status] || '📄';
+    };
+
+    const getStatusColor = (status) => {
+        const colors = {
+            'new': 'info',
+            'in_progress': 'warning',
+            'completed': 'success',
+            'cancelled': 'danger',
+        };
+        return colors[status] || 'secondary';
+    };
+
+    const renderTrendsTable = (dynamics) => {
+        const tbody = document.getElementById('trends-table-body');
+        const container = document.getElementById('trends-container');
+        
+        if (!tbody || !dynamics || !dynamics.periods) return;
+
+        const periods = dynamics.periods || [];
+
+        if (periods.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 2rem;">No data available</td>
+                </tr>
+            `;
+        } else {
+            tbody.innerHTML = periods.map(period => {
+                const statusCounts = period.byStatus || [];
+                const statusMap = {};
+                statusCounts.forEach(s => {
+                    statusMap[s.status] = s.count;
+                });
+
+                return `
+                    <tr>
+                        <td>${Utils.escapeHtml(period.period)}</td>
+                        <td><strong>${Utils.formatNumber(period.total)}</strong></td>
+                        <td>${Utils.formatNumber(statusMap['new'] || 0)}</td>
+                        <td>${Utils.formatNumber(statusMap['in_progress'] || 0)}</td>
+                        <td>${Utils.formatNumber(statusMap['completed'] || 0)}</td>
+                        <td>${Utils.formatNumber(statusMap['cancelled'] || 0)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        container.style.display = 'block';
+    };
+
     return {
         showNotification,
         showMessage,
@@ -366,5 +475,8 @@ const UI = (() => {
         updateUserProfile,
         setActiveNavItem,
         resetForm,
+        showReportLoadingState,
+        renderKpiCards,
+        renderTrendsTable,
     };
 })();

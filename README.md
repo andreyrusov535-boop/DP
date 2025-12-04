@@ -29,6 +29,16 @@ This is a responsive HTML/CSS/Vanilla JavaScript frontend for a Request Manageme
   - Client-side file validation
   - Deadline scheduling
 
+- **Reports & Analytics** (Supervisors/Admins only):
+  - Interactive KPI cards with key metrics
+  - Visual charts powered by Chart.js
+    - Requests by Status (Doughnut Chart)
+    - Monthly Dynamics (Stacked Bar Chart with daily/weekly grouping)
+  - Filterable data (status, type, territory, executor, date range)
+  - Export capabilities (Excel and PDF)
+  - Trends table with time-series breakdown
+  - Responsive visualizations for all screen sizes
+
 ### Request Management
 - **View Details**: Modal to view full request information
 - **Edit Request**: Update request details (role-based permissions)

@@ -92,6 +92,23 @@
         grid-template-columns: repeat(2, 1fr);
     }
 
+    .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .export-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .export-buttons .btn {
+        width: 100%;
+    }
+
+    .chart-container {
+        height: 250px;
+    }
+
     .notification-container {
         left: var(--spacing-lg);
         right: var(--spacing-lg);
@@ -349,6 +366,55 @@
         gap: var(--spacing-sm);
     }
 
+    .kpi-grid {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-sm);
+    }
+
+    .kpi-card {
+        padding: var(--spacing-md);
+    }
+
+    .kpi-icon {
+        font-size: 1.5rem;
+    }
+
+    .kpi-value {
+        font-size: 1.5rem;
+    }
+
+    .chart-container {
+        height: 200px;
+    }
+
+    .chart-controls {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .chart-controls select {
+        width: 100%;
+    }
+
+    .section-header .export-buttons {
+        flex-direction: column;
+        width: 100%;
+        gap: var(--spacing-sm);
+    }
+
+    .section-header .export-buttons .btn {
+        width: 100%;
+    }
+
+    .trends-table {
+        font-size: 0.75rem;
+    }
+
+    .trends-table th,
+    .trends-table td {
+        padding: var(--spacing-sm);
+    }
+
     .stat-item {
         padding: var(--spacing-sm);
         gap: var(--spacing-xs);
@@ -417,6 +483,20 @@
     .widget-content {
         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     }
+
+    .kpi-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .charts-container {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--spacing-xl);
+    }
+
+    .charts-container > div {
+        margin-bottom: 0;
+    }
 }
 
 /* Extra Large screens (1600px and up) */
@@ -433,6 +513,10 @@
 
     .filters-container {
         grid-template-columns: repeat(6, 1fr);
+    }
+
+    .kpi-grid {
+        grid-template-columns: repeat(5, 1fr);
     }
 }
 

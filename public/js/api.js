@@ -191,10 +191,105 @@ const API = (() => {
         getOverview: () => request('/stats/overview'),
     };
 
+    // Reports API
+    const reports = {
+        getOverview: (filters = {}) => {
+            const params = new URLSearchParams();
+            if (filters.status) params.append('status', filters.status);
+            if (filters.priority) params.append('priority', filters.priority);
+            if (filters.type) params.append('type', filters.type);
+            if (filters.topic) params.append('topic', filters.topic);
+            if (filters.territory) params.append('territory', filters.territory);
+            if (filters.executor) params.append('executor', filters.executor);
+            if (filters.date_from) params.append('date_from', filters.date_from);
+            if (filters.date_to) params.append('date_to', filters.date_to);
+            if (filters.social_group_id) params.append('social_group_id', filters.social_group_id);
+            if (filters.intake_form_id) params.append('intake_form_id', filters.intake_form_id);
+            if (filters.search) params.append('search', filters.search);
+
+            const queryString = params.toString();
+            const url = queryString ? `/reports/overview?${queryString}` : '/reports/overview';
+            return request(url);
+        },
+
+        getDynamics: (filters = {}, groupBy = 'weekly') => {
+            const params = new URLSearchParams();
+            params.append('groupBy', groupBy);
+            if (filters.status) params.append('status', filters.status);
+            if (filters.priority) params.append('priority', filters.priority);
+            if (filters.type) params.append('type', filters.type);
+            if (filters.topic) params.append('topic', filters.topic);
+            if (filters.territory) params.append('territory', filters.territory);
+            if (filters.executor) params.append('executor', filters.executor);
+            if (filters.date_from) params.append('date_from', filters.date_from);
+            if (filters.date_to) params.append('date_to', filters.date_to);
+            if (filters.social_group_id) params.append('social_group_id', filters.social_group_id);
+            if (filters.intake_form_id) params.append('intake_form_id', filters.intake_form_id);
+            if (filters.search) params.append('search', filters.search);
+
+            const queryString = params.toString();
+            return request(`/reports/dynamics?${queryString}`);
+        },
+
+        exportReport: async (format, filters = {}) => {
+            const params = new URLSearchParams();
+            params.append('format', format);
+            if (filters.status) params.append('status', filters.status);
+            if (filters.priority) params.append('priority', filters.priority);
+            if (filters.type) params.append('type', filters.type);
+            if (filters.topic) params.append('topic', filters.topic);
+            if (filters.territory) params.append('territory', filters.territory);
+            if (filters.executor) params.append('executor', filters.executor);
+            if (filters.date_from) params.append('date_from', filters.date_from);
+            if (filters.date_to) params.append('date_to', filters.date_to);
+            if (filters.social_group_id) params.append('social_group_id', filters.social_group_id);
+            if (filters.intake_form_id) params.append('intake_form_id', filters.intake_form_id);
+            if (filters.search) params.append('search', filters.search);
+
+            const queryString = params.toString();
+            const url = `${CONFIG.API_BASE_URL}/reports/export?${queryString}`;
+
+            const token = Auth.getAccessToken();
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({
+                    message: `HTTP Error: ${response.status}`,
+                }));
+                throw new Error(error.message || 'Export failed');
+            }
+
+            const blob = await response.blob();
+            const contentDisposition = response.headers.get('content-disposition');
+            let filename = `report_${Date.now()}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+            
+            if (contentDisposition) {
+                const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
+                if (matches && matches[1]) {
+                    filename = matches[1].replace(/['"]/g, '');
+                }
+            }
+
+            const link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(link.href);
+        },
+    };
+
     return {
         request,
         requests,
         stats,
+        reports,
         getCsrfToken,
     };
 })();

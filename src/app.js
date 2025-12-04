@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const helmet = require('helmet');
 const cors = require('cors');
 const compression = require('compression');
@@ -28,8 +29,24 @@ const authRateLimiter = new RateLimiterMemory({
   duration: 900 // 15 minutes
 });
 
-// Security middleware
-app.use(helmet());
+// Security middleware - Allow Chart.js CDN
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'"],
+        fontSrc: ["'self'", "data:"],
+        objectSrc: ["'none'"],
+        mediaSrc: ["'self'"],
+        frameSrc: ["'none'"],
+      },
+    },
+  })
+);
 app.use(cors());
 app.use(compression());
 
@@ -79,6 +96,9 @@ app.use('/api/nomenclature', nomenclatureRouter);
 app.use('/api/files', filesRouter);
 app.use('/api/sample', sampleRouter);
 app.use('/api/reports', reportsRouter);
+
+// Serve static files from the public directory
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // eslint-disable-next-line no-unused-vars
 app.use((err, _req, res, _next) => {

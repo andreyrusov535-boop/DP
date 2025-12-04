@@ -167,6 +167,30 @@ const Utils = (() => {
         return text.replace(/[&<>"']/g, m => map[m]);
     };
 
+    const formatPercentage = (value, total) => {
+        if (!total || total === 0) return '0%';
+        const percentage = (value / total) * 100;
+        return `${percentage.toFixed(1)}%`;
+    };
+
+    const formatNumber = (num) => {
+        return new Intl.NumberFormat('en-US').format(num);
+    };
+
+    const calculateTrend = (current, previous) => {
+        if (!previous || previous === 0) {
+            return current > 0 ? '+100%' : '0%';
+        }
+        const diff = ((current - previous) / previous) * 100;
+        const sign = diff > 0 ? '+' : '';
+        return `${sign}${diff.toFixed(1)}%`;
+    };
+
+    const truncateText = (text, maxLength = 50) => {
+        if (!text || text.length <= maxLength) return text;
+        return text.substring(0, maxLength) + '...';
+    };
+
     return {
         formatDate,
         formatDateTime,
@@ -184,5 +208,9 @@ const Utils = (() => {
         formatCurrency,
         pluralize,
         escapeHtml,
+        formatPercentage,
+        formatNumber,
+        calculateTrend,
+        truncateText,
     };
 })();
