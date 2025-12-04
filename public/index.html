@@ -6,6 +6,7 @@
     <title>Request Management Dashboard</title>
     <link rel="stylesheet" href="/styles/main.css">
     <link rel="stylesheet" href="/styles/responsive.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
     <div id="app">
@@ -94,6 +95,9 @@
                         </button>
                         <button id="nav-create" class="nav-item" data-section="create" aria-label="Create new request">
                             Create Request
+                        </button>
+                        <button id="nav-reports" class="nav-item" data-section="reports" aria-label="View reports and analytics" style="display: none;">
+                            Reports
                         </button>
                     </nav>
                 </aside>
@@ -283,6 +287,136 @@
                              <div id="create-message" class="message"></div>
                          </form>
                      </section>
+
+                    <!-- Reports Section -->
+                    <section id="reports-section" class="section">
+                        <div class="section-header">
+                            <h2>Reports & Analytics</h2>
+                            <div class="export-buttons" style="display: flex; gap: 0.5rem;">
+                                <button id="export-excel-btn" class="btn btn-primary" aria-label="Export to Excel">
+                                    Export Excel
+                                </button>
+                                <button id="export-pdf-btn" class="btn btn-secondary" aria-label="Export to PDF">
+                                    Export PDF
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Report Filters -->
+                        <div class="report-filters-container">
+                            <h3>Filters</h3>
+                            <div class="filters-container">
+                                <div class="filter-group">
+                                    <label for="report-filter-status">Status</label>
+                                    <select id="report-filter-status" aria-label="Filter by status">
+                                        <option value="">All Status</option>
+                                        <option value="new">New</option>
+                                        <option value="in_progress">In Progress</option>
+                                        <option value="completed">Completed</option>
+                                        <option value="cancelled">Cancelled</option>
+                                    </select>
+                                </div>
+
+                                <div class="filter-group">
+                                    <label for="report-filter-type">Type</label>
+                                    <select id="report-filter-type" aria-label="Filter by request type">
+                                        <option value="">All Types</option>
+                                    </select>
+                                </div>
+
+                                <div class="filter-group">
+                                    <label for="report-filter-territory">Territory</label>
+                                    <input type="text" id="report-filter-territory" placeholder="Filter by territory..." aria-label="Filter by territory" />
+                                </div>
+
+                                <div class="filter-group">
+                                    <label for="report-filter-intake-form">Intake Form</label>
+                                    <select id="report-filter-intake-form" aria-label="Filter by intake form">
+                                        <option value="">All Forms</option>
+                                    </select>
+                                </div>
+
+                                <div class="filter-group">
+                                    <label for="report-filter-executor">Executor</label>
+                                    <input type="text" id="report-filter-executor" placeholder="Filter by executor..." aria-label="Filter by executor" />
+                                </div>
+
+                                <div class="filter-group">
+                                    <label for="report-filter-date-from">Date From</label>
+                                    <input type="date" id="report-filter-date-from" aria-label="Filter from date" />
+                                </div>
+
+                                <div class="filter-group">
+                                    <label for="report-filter-date-to">Date To</label>
+                                    <input type="date" id="report-filter-date-to" aria-label="Filter to date" />
+                                </div>
+
+                                <div class="filter-group" style="display: flex; align-items: flex-end;">
+                                    <button id="report-filter-apply-btn" class="btn btn-primary" aria-label="Apply report filters">Apply Filters</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Loading state -->
+                        <div id="report-loading-indicator" class="loading-indicator" style="display: none;" aria-label="Loading reports">
+                            <div class="spinner"></div>
+                            <p>Loading reports...</p>
+                        </div>
+
+                        <!-- KPI Summary Cards -->
+                        <div id="kpi-cards-container" class="kpi-cards" style="display: none;">
+                            <h3>Key Performance Indicators</h3>
+                            <div class="kpi-grid" id="kpi-grid">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Charts Container -->
+                        <div id="charts-container" class="charts-container" style="display: none;">
+                            <div class="chart-wrapper">
+                                <h3>Requests by Status</h3>
+                                <div class="chart-container">
+                                    <canvas id="status-chart" aria-label="Requests by status chart"></canvas>
+                                </div>
+                            </div>
+
+                            <div class="chart-wrapper">
+                                <h3>Monthly Dynamics</h3>
+                                <div class="chart-controls">
+                                    <label for="dynamics-grouping">Group by:</label>
+                                    <select id="dynamics-grouping" aria-label="Group dynamics by period">
+                                        <option value="daily">Daily</option>
+                                        <option value="weekly" selected>Weekly</option>
+                                    </select>
+                                </div>
+                                <div class="chart-container">
+                                    <canvas id="dynamics-chart" aria-label="Request dynamics chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Trends Table -->
+                        <div id="trends-container" class="trends-container" style="display: none;">
+                            <h3>Trends Summary</h3>
+                            <div class="table-wrapper">
+                                <table id="trends-table" class="trends-table" aria-label="Trends summary table">
+                                    <thead>
+                                        <tr>
+                                            <th>Period</th>
+                                            <th>Total</th>
+                                            <th>New</th>
+                                            <th>In Progress</th>
+                                            <th>Completed</th>
+                                            <th>Cancelled</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="trends-table-body">
+                                        <!-- Populated dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
 
                     <!-- Edit Request Modal -->
                     <div id="edit-modal" class="modal" style="display: none;">

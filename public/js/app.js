@@ -4,6 +4,9 @@ const App = (() => {
     let currentRequests = [];
     let allRequests = [];
     let statsRefreshTimer = null;
+    let statusChartInstance = null;
+    let dynamicsChartInstance = null;
+    let currentReportFilters = {};
 
     const init = () => {
         if (Auth.isAuthenticated()) {
@@ -55,6 +58,9 @@ const App = (() => {
                     loadRequests();
                 } else if (section === 'overview') {
                     loadStats();
+                } else if (section === 'reports') {
+                    loadReportNomenclature();
+                    loadReports();
                 }
             });
         });
@@ -122,6 +128,27 @@ const App = (() => {
 
         // Request list events (delegated)
         document.addEventListener('click', handleRequestListActions);
+
+        // Reports section
+        const reportFilterApplyBtn = document.getElementById('report-filter-apply-btn');
+        if (reportFilterApplyBtn) {
+            reportFilterApplyBtn.addEventListener('click', applyReportFilters);
+        }
+
+        const exportExcelBtn = document.getElementById('export-excel-btn');
+        if (exportExcelBtn) {
+            exportExcelBtn.addEventListener('click', () => handleExportReport('excel'));
+        }
+
+        const exportPdfBtn = document.getElementById('export-pdf-btn');
+        if (exportPdfBtn) {
+            exportPdfBtn.addEventListener('click', () => handleExportReport('pdf'));
+        }
+
+        const dynamicsGrouping = document.getElementById('dynamics-grouping');
+        if (dynamicsGrouping) {
+            dynamicsGrouping.addEventListener('change', () => loadReports(currentReportFilters));
+        }
     };
 
     const showAuth = () => {
@@ -133,6 +160,15 @@ const App = (() => {
         const user = Auth.getUserInfo();
         if (user) {
             UI.updateUserProfile(user);
+            
+            const navReports = document.getElementById('nav-reports');
+            if (navReports) {
+                if (user.role === 'supervisor' || user.role === 'admin') {
+                    navReports.style.display = 'block';
+                } else {
+                    navReports.style.display = 'none';
+                }
+            }
         }
         // Load initial data
         loadStats();
@@ -579,6 +615,236 @@ const App = (() => {
         } catch (error) {
             console.error('Failed to load request:', error);
             UI.showNotification('Failed to load request: ' + error.message, 'error');
+        }
+    };
+
+    const loadReportNomenclature = async () => {
+        try {
+            const response = await API.request('/api/nomenclature');
+            const { types, intakeForms } = response;
+
+            const reportTypeSelect = document.getElementById('report-filter-type');
+            if (reportTypeSelect && reportTypeSelect.children.length === 1) {
+                types.forEach(type => {
+                    const option = document.createElement('option');
+                    option.value = type.id;
+                    option.textContent = type.name;
+                    reportTypeSelect.appendChild(option);
+                });
+            }
+
+            const reportIntakeFormSelect = document.getElementById('report-filter-intake-form');
+            if (reportIntakeFormSelect && reportIntakeFormSelect.children.length === 1) {
+                intakeForms.forEach(form => {
+                    const option = document.createElement('option');
+                    option.value = form.id;
+                    option.textContent = form.name;
+                    reportIntakeFormSelect.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Failed to load report nomenclature:', error);
+        }
+    };
+
+    const loadReports = async (filters = {}) => {
+        UI.showReportLoadingState(true);
+        currentReportFilters = filters;
+
+        try {
+            const [overview, dynamics] = await Promise.all([
+                API.reports.getOverview(filters),
+                API.reports.getDynamics(filters, document.getElementById('dynamics-grouping')?.value || 'weekly'),
+            ]);
+
+            UI.renderKpiCards(overview);
+            renderStatusChart(overview);
+            renderDynamicsChart(dynamics);
+            UI.renderTrendsTable(dynamics);
+
+            UI.showReportLoadingState(false);
+
+            const chartsContainer = document.getElementById('charts-container');
+            if (chartsContainer) {
+                chartsContainer.style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Failed to load reports:', error);
+            UI.showNotification('Failed to load reports: ' + error.message, 'error');
+            UI.showReportLoadingState(false);
+        }
+    };
+
+    const applyReportFilters = () => {
+        const status = document.getElementById('report-filter-status')?.value;
+        const type = document.getElementById('report-filter-type')?.value;
+        const territory = document.getElementById('report-filter-territory')?.value;
+        const intakeFormId = document.getElementById('report-filter-intake-form')?.value;
+        const executor = document.getElementById('report-filter-executor')?.value;
+        const dateFrom = document.getElementById('report-filter-date-from')?.value;
+        const dateTo = document.getElementById('report-filter-date-to')?.value;
+
+        const filters = {};
+        if (status) filters.status = status;
+        if (type) filters.type = type;
+        if (territory) filters.territory = territory;
+        if (intakeFormId) filters.intake_form_id = intakeFormId;
+        if (executor) filters.executor = executor;
+        if (dateFrom) filters.date_from = dateFrom;
+        if (dateTo) filters.date_to = dateTo;
+
+        loadReports(filters);
+    };
+
+    const renderStatusChart = (overview) => {
+        const canvas = document.getElementById('status-chart');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        const byStatus = overview.byStatus || [];
+
+        if (statusChartInstance) {
+            statusChartInstance.destroy();
+        }
+
+        const labels = byStatus.map(item => Utils.capitalizeFirstLetter(item.status.replace('_', ' ')));
+        const data = byStatus.map(item => item.count);
+        const colors = byStatus.map(item => {
+            const colorMap = {
+                'new': '#0ea5e9',
+                'in_progress': '#f59e0b',
+                'completed': '#10b981',
+                'cancelled': '#ef4444',
+            };
+            return colorMap[item.status] || '#64748b';
+        });
+
+        statusChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: colors,
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return `${label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                },
+            },
+        });
+    };
+
+    const renderDynamicsChart = (dynamics) => {
+        const canvas = document.getElementById('dynamics-chart');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        const periods = dynamics.periods || [];
+
+        if (dynamicsChartInstance) {
+            dynamicsChartInstance.destroy();
+        }
+
+        const labels = periods.map(p => p.period);
+        const statusMap = {};
+
+        periods.forEach(period => {
+            (period.byStatus || []).forEach(statusItem => {
+                if (!statusMap[statusItem.status]) {
+                    statusMap[statusItem.status] = [];
+                }
+            });
+        });
+
+        periods.forEach(period => {
+            const periodStatusMap = {};
+            (period.byStatus || []).forEach(statusItem => {
+                periodStatusMap[statusItem.status] = statusItem.count;
+            });
+
+            Object.keys(statusMap).forEach(status => {
+                statusMap[status].push(periodStatusMap[status] || 0);
+            });
+        });
+
+        const datasets = Object.keys(statusMap).map(status => {
+            const colorMap = {
+                'new': '#0ea5e9',
+                'in_progress': '#f59e0b',
+                'completed': '#10b981',
+                'cancelled': '#ef4444',
+            };
+
+            return {
+                label: Utils.capitalizeFirstLetter(status.replace('_', ' ')),
+                data: statusMap[status],
+                backgroundColor: colorMap[status] || '#64748b',
+                borderColor: colorMap[status] || '#64748b',
+                borderWidth: 2,
+            };
+        });
+
+        dynamicsChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: datasets,
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    x: {
+                        stacked: true,
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                        }
+                    },
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                    }
+                },
+            },
+        });
+    };
+
+    const handleExportReport = async (format) => {
+        try {
+            UI.showNotification(`Preparing ${format.toUpperCase()} export...`, 'info');
+            await API.reports.exportReport(format, currentReportFilters);
+            UI.showNotification(`${format.toUpperCase()} report downloaded successfully!`, 'success');
+        } catch (error) {
+            console.error('Failed to export report:', error);
+            UI.showNotification(`Failed to export report: ${error.message}`, 'error');
         }
     };
 
