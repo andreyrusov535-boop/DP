@@ -86,6 +86,109 @@ Returns both request types and topics.
 - `GET /api/nomenclature/types`
 - `GET /api/nomenclature/topics`
 
+### `GET /api/reports/overview`
+Returns aggregated analytics overview. **Requires authentication with supervisor or admin role.**
+
+Query parameters (all optional, used for filtering):
+
+| Param | Description |
+| --- | --- |
+| `status` | Filter by status enum |
+| `priority` | Filter by priority enum |
+| `type` | Filter by request type ID |
+| `topic` | Filter by request topic ID |
+| `social_group_id` | Filter by social group ID |
+| `intake_form_id` | Filter by intake form ID |
+| `territory` | Filter by territory |
+| `executor` | Filter by executor name |
+| `fio` | Filter by citizen FIO |
+| `address` | Filter by address |
+| `contact_channel` | Filter by contact channel |
+| `date_from` / `date_to` | Filter by creation date range (ISO-8601) |
+| `search` | Full-text search |
+
+**Response**:
+```json
+{
+  "total": 150,
+  "byStatus": [
+    { "status": "new", "count": 45 },
+    { "status": "in_progress", "count": 60 }
+  ],
+  "byType": [
+    { "type": "Water Supply", "count": 50 }
+  ],
+  "byTopic": [
+    { "topic": "Leak Response", "count": 30 }
+  ],
+  "byExecutor": [
+    { "executor": "John Doe", "count": 25 }
+  ],
+  "byTerritory": [
+    { "territory": "District 1", "count": 40 }
+  ],
+  "bySocialGroup": [
+    { "socialGroup": "Families with Children", "count": 20 }
+  ],
+  "byIntakeForm": [
+    { "intakeForm": "Online Form", "count": 80 }
+  ],
+  "byPriority": [
+    { "priority": "high", "count": 35 }
+  ]
+}
+```
+
+### `GET /api/reports/dynamics`
+Returns time-series data for trend analysis. **Requires authentication with supervisor or admin role.**
+
+Query parameters:
+- All filter parameters from `/overview` endpoint
+- `groupBy`: `daily` (default) or `weekly`
+
+**Response**:
+```json
+{
+  "groupBy": "daily",
+  "series": [
+    {
+      "period": "2025-12-01",
+      "total": 15,
+      "new": 5,
+      "inProgress": 8,
+      "completed": 2,
+      "paused": 0,
+      "archived": 0
+    }
+  ]
+}
+```
+
+### `GET /api/reports/export`
+Generates and streams Excel or PDF export. **Requires authentication with supervisor or admin role.**
+
+Query parameters:
+- `format`: **required**, must be `excel` or `pdf`
+- All filter parameters from `/overview` endpoint
+
+**Response**:
+- Excel: `Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
+- PDF: `Content-Type: application/pdf`
+- Both include `Content-Disposition` header with suggested filename
+
+**Excel export** includes two worksheets:
+1. **Overview**: Metadata, applied filters, and all aggregated breakdowns
+2. **Dynamics**: Time-series data with period, total, and status counts
+
+**PDF export** includes:
+- Report header with generation timestamp
+- Applied filters section
+- Total requests count
+- All breakdowns (status, priority, executors, territories)
+- Time-series summary (first 20 periods)
+
+All report endpoints log audit entries for traceability.
+
 ## Deadline Control Logic
 
 - Threshold: 48 hours
