@@ -191,9 +191,12 @@ async function getFileById(fileId) {
   return db.get('SELECT * FROM files WHERE id = ?', fileId);
 }
 
-async function logAction(tableName, log) {
+async function logProceeding(log) {
   const db = getDb();
-  const sql = `INSERT INTO ${tableName} (request_id, action, ${tableName === 'audit_log' ? 'payload' : 'notes'}, created_at) VALUES (?, ?, ?, ?)`;
+  const sql = `
+    INSERT INTO request_proceedings (request_id, action, notes, created_at)
+    VALUES (?, ?, ?, ?)
+  `;
   return db.run(sql, [log.request_id, log.action, log.details, log.created_at]);
 }
 
@@ -205,6 +208,6 @@ module.exports = {
   insertFiles,
   getFilesByRequestId,
   getFileById,
-  logAction,
+  logProceeding,
   SORTABLE_FIELDS
 };
