@@ -152,6 +152,7 @@ npm run lint
 - **Deadline management**: Automatic deadline status calculation on read/write with scheduled cron refresh (Node-cron) and notification hooks for approaching/overdue deadlines
 - **Audit logging**: Comprehensive audit trails in `audit_log` and `request_proceedings` tables for every mutation
 - **Reference data**: Nomenclature endpoints for request types/topics used by the frontend filters
+- **Reporting & Analytics**: Aggregated overview reports, time-series dynamics, and Excel/PDF exports with filtering support (supervisor/admin role required)
 - **Compression**: Response compression with gzip for bandwidth optimization
 - **Logging**: Morgan-based HTTP request logging
 
@@ -211,8 +212,10 @@ UPLOAD_DIR=./uploads
 - `POST /api/requests/:id/assign` - Assign executor
 - `PATCH /api/requests/:id/status` - Update status
 
-**Statistics** (to be implemented)
-- `GET /api/stats/overview` - Get dashboard statistics
+**Reporting & Analytics** (requires supervisor or admin role)
+- `GET /api/reports/overview` - Get aggregated analytics overview
+- `GET /api/reports/dynamics` - Get time-series trend data
+- `GET /api/reports/export` - Export reports in Excel or PDF format
 
 **Nomenclature**
 - `GET /api/nomenclature/*` - Reference data endpoints

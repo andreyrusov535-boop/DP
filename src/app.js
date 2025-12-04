@@ -10,6 +10,7 @@ const requestsRouter = require('./routes/requests');
 const nomenclatureRouter = require('./routes/nomenclature');
 const filesRouter = require('./routes/files');
 const sampleRouter = require('./routes/sample');
+const reportsRouter = require('./routes/reports');
 const { ensureUploadDir } = require('./utils/fileStorage');
 const { scheduleDeadlineRefresh, runDeadlineRefreshOnce } = require('./jobs/deadlineJob');
 
@@ -77,6 +78,7 @@ app.use('/api/requests', requestsRouter);
 app.use('/api/nomenclature', nomenclatureRouter);
 app.use('/api/files', filesRouter);
 app.use('/api/sample', sampleRouter);
+app.use('/api/reports', reportsRouter);
 
 // eslint-disable-next-line no-unused-vars
 app.use((err, _req, res, _next) => {
