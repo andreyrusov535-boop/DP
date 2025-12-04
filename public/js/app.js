@@ -136,6 +136,66 @@ const App = (() => {
         }
         // Load initial data
         loadStats();
+        loadNomenclature();
+    };
+
+    const loadNomenclature = async () => {
+        try {
+            const response = await API.request('/api/nomenclature');
+            const { types, topics, socialGroups, intakeForms } = response;
+
+            // Populate request type selects
+            const typeSelects = ['filter-type', 'create-type', 'edit-type'];
+            typeSelects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                if (select) {
+                    types.forEach(type => {
+                        const option = document.createElement('option');
+                        option.value = type.id;
+                        option.textContent = type.name;
+                        select.appendChild(option);
+                    });
+                }
+            });
+
+            // Populate social group selects
+            const socialGroupSelects = ['filter-social-group', 'create-social-group', 'edit-social-group'];
+            socialGroupSelects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                if (select) {
+                    // Keep the first option
+                    while (select.children.length > 1) {
+                        select.removeChild(select.lastChild);
+                    }
+                    socialGroups.forEach(group => {
+                        const option = document.createElement('option');
+                        option.value = group.id;
+                        option.textContent = group.name;
+                        select.appendChild(option);
+                    });
+                }
+            });
+
+            // Populate intake form selects
+            const intakeFormSelects = ['filter-intake-form', 'create-intake-form', 'edit-intake-form'];
+            intakeFormSelects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                if (select) {
+                    // Keep the first option
+                    while (select.children.length > 1) {
+                        select.removeChild(select.lastChild);
+                    }
+                    intakeForms.forEach(form => {
+                        const option = document.createElement('option');
+                        option.value = form.id;
+                        option.textContent = form.name;
+                        select.appendChild(option);
+                    });
+                }
+            });
+        } catch (error) {
+            console.error('Failed to load nomenclature:', error);
+        }
     };
 
     const handleLogin = async (e) => {
@@ -234,8 +294,8 @@ const App = (() => {
     const loadRequests = async (filters = {}) => {
         UI.showLoadingState(true);
         try {
-            const data = await API.requests.list(filters);
-            currentRequests = data.requests || [];
+            const response = await API.requests.list(filters);
+            currentRequests = response.data || [];
             allRequests = currentRequests;
             const userRole = Auth.getUserInfo()?.role || CONFIG.ROLES.CITIZEN;
             UI.renderRequestList(currentRequests, userRole);
@@ -251,6 +311,10 @@ const App = (() => {
         const type = document.getElementById('filter-type').value;
         const status = document.getElementById('filter-status').value;
         const executor = document.getElementById('filter-executor').value;
+        const address = document.getElementById('filter-address')?.value;
+        const territory = document.getElementById('filter-territory')?.value;
+        const socialGroupId = document.getElementById('filter-social-group')?.value;
+        const intakeFormId = document.getElementById('filter-intake-form')?.value;
         const dateFrom = document.getElementById('filter-date-from').value;
         const dateTo = document.getElementById('filter-date-to').value;
         const search = document.getElementById('filter-search').value;
@@ -259,6 +323,10 @@ const App = (() => {
         if (type) filters.type = type;
         if (status) filters.status = status;
         if (executor) filters.executor = executor;
+        if (address) filters.address = address;
+        if (territory) filters.territory = territory;
+        if (socialGroupId) filters.social_group_id = socialGroupId;
+        if (intakeFormId) filters.intake_form_id = intakeFormId;
         if (dateFrom) filters.date_from = dateFrom;
         if (dateTo) filters.date_to = dateTo;
         if (search) filters.search = search;
@@ -270,6 +338,14 @@ const App = (() => {
         document.getElementById('filter-type').value = '';
         document.getElementById('filter-status').value = '';
         document.getElementById('filter-executor').value = '';
+        const addressFilter = document.getElementById('filter-address');
+        if (addressFilter) addressFilter.value = '';
+        const territoryFilter = document.getElementById('filter-territory');
+        if (territoryFilter) territoryFilter.value = '';
+        const socialGroupFilter = document.getElementById('filter-social-group');
+        if (socialGroupFilter) socialGroupFilter.value = '';
+        const intakeFormFilter = document.getElementById('filter-intake-form');
+        if (intakeFormFilter) intakeFormFilter.value = '';
         document.getElementById('filter-date-from').value = '';
         document.getElementById('filter-date-to').value = '';
         document.getElementById('filter-search').value = '';
@@ -279,13 +355,15 @@ const App = (() => {
     const handleCreateRequest = async (e) => {
         e.preventDefault();
 
-        const type = document.getElementById('create-type').value;
+        const requestTypeId = document.getElementById('create-type').value;
         const description = document.getElementById('create-description').value;
-        const location = document.getElementById('create-location').value;
-        const deadline = document.getElementById('create-deadline').value;
+        const address = document.getElementById('create-address').value;
+        const dueDate = document.getElementById('create-deadline').value;
         const attachmentInput = document.getElementById('create-attachment');
+        const citizenFio = currentUser?.name || 'Unknown User';
+        const contactEmail = currentUser?.email || '';
 
-        if (!type || !description || !location) {
+        if (!requestTypeId || !description || !address) {
             UI.showMessage('create-message', 'Please fill all required fields', 'error');
             return;
         }
@@ -304,13 +382,35 @@ const App = (() => {
 
         try {
             const data = {
-                type,
+                citizenFio,
                 description,
-                location,
+                address,
+                contactEmail,
+                requestTypeId: Number(requestTypeId)
             };
 
-            if (deadline) {
-                data.deadline = Utils.convertFromLocalDateTime(deadline);
+            const socialGroupId = document.getElementById('create-social-group')?.value;
+            if (socialGroupId) {
+                data.socialGroupId = Number(socialGroupId);
+            }
+
+            const intakeFormId = document.getElementById('create-intake-form')?.value;
+            if (intakeFormId) {
+                data.intakeFormId = Number(intakeFormId);
+            }
+
+            const territory = document.getElementById('create-territory')?.value;
+            if (territory) {
+                data.territory = territory;
+            }
+
+            const contactChannel = document.getElementById('create-contact-channel')?.value;
+            if (contactChannel) {
+                data.contactChannel = contactChannel;
+            }
+
+            if (dueDate) {
+                data.dueDate = Utils.convertFromLocalDateTime(dueDate);
             }
 
             const result = await API.requests.create(data, file);
@@ -366,14 +466,34 @@ const App = (() => {
 
             // Populate form
             document.getElementById('edit-request-id').value = request.id;
-            document.getElementById('edit-type').value = request.type;
-            document.getElementById('edit-description').value = request.description;
-            document.getElementById('edit-location').value = request.location;
+            document.getElementById('edit-type').value = request.requestType?.id || '';
+            document.getElementById('edit-description').value = request.description || '';
+            document.getElementById('edit-address').value = request.address || '';
             document.getElementById('edit-status').value = request.status;
             document.getElementById('edit-executor').value = request.executor || '';
 
-            if (request.deadline) {
-                document.getElementById('edit-deadline').value = Utils.convertToLocalDateTime(request.deadline);
+            if (request.dueDate) {
+                document.getElementById('edit-deadline').value = Utils.convertToLocalDateTime(request.dueDate);
+            }
+
+            const editSocialGroup = document.getElementById('edit-social-group');
+            if (editSocialGroup && request.socialGroup) {
+                editSocialGroup.value = request.socialGroup.id;
+            }
+
+            const editIntakeForm = document.getElementById('edit-intake-form');
+            if (editIntakeForm && request.intakeForm) {
+                editIntakeForm.value = request.intakeForm.id;
+            }
+
+            const editTerritory = document.getElementById('edit-territory');
+            if (editTerritory) {
+                editTerritory.value = request.territory || '';
+            }
+
+            const editContactChannel = document.getElementById('edit-contact-channel');
+            if (editContactChannel) {
+                editContactChannel.value = request.contactChannel || '';
             }
 
             // Show/hide fields based on role
@@ -383,7 +503,7 @@ const App = (() => {
             } else if (userRole === CONFIG.ROLES.SUPERVISOR) {
                 document.getElementById('edit-type').parentElement.style.display = 'none';
                 document.getElementById('edit-description').parentElement.style.display = 'none';
-                document.getElementById('edit-location').parentElement.style.display = 'none';
+                document.getElementById('edit-address').parentElement.style.display = 'none';
             }
 
             UI.showModal('edit-modal');
@@ -402,12 +522,23 @@ const App = (() => {
         const updateData = {};
 
         if (userRole === CONFIG.ROLES.OPERATOR) {
-            updateData.type = document.getElementById('edit-type').value;
+            const typeValue = document.getElementById('edit-type').value;
+            if (typeValue) updateData.requestTypeId = Number(typeValue);
             updateData.description = document.getElementById('edit-description').value;
-            updateData.location = document.getElementById('edit-location').value;
+            updateData.address = document.getElementById('edit-address').value;
+            
+            const socialGroupId = document.getElementById('edit-social-group')?.value;
+            if (socialGroupId) updateData.socialGroupId = Number(socialGroupId);
+            
+            const intakeFormId = document.getElementById('edit-intake-form')?.value;
+            if (intakeFormId) updateData.intakeFormId = Number(intakeFormId);
+            
+            const territory = document.getElementById('edit-territory')?.value;
+            if (territory) updateData.territory = territory;
+            
             const deadline = document.getElementById('edit-deadline').value;
             if (deadline) {
-                updateData.deadline = Utils.convertFromLocalDateTime(deadline);
+                updateData.dueDate = Utils.convertFromLocalDateTime(deadline);
             }
         } else if (userRole === CONFIG.ROLES.SUPERVISOR) {
             updateData.status = document.getElementById('edit-status').value;

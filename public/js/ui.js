@@ -119,16 +119,16 @@ const UI = (() => {
                         </div>
                         <div class="request-meta">
                             <div class="request-meta-item">
-                                <strong>Type:</strong> ${Utils.capitalizeFirstLetter(request.type)}
+                                <strong>Citizen:</strong> ${Utils.escapeHtml(request.citizenFio || 'N/A')}
                             </div>
-                            <div class="request-meta-item">
-                                <strong>Location:</strong> ${Utils.escapeHtml(request.location)}
-                            </div>
+                            ${request.requestType ? `<div class="request-meta-item"><strong>Type:</strong> ${Utils.escapeHtml(request.requestType.name)}</div>` : ''}
+                            ${request.address ? `<div class="request-meta-item"><strong>Address:</strong> ${Utils.escapeHtml(request.address)}</div>` : ''}
+                            ${request.territory ? `<div class="request-meta-item"><strong>Territory:</strong> ${Utils.escapeHtml(request.territory)}</div>` : ''}
                             ${request.executor ? `<div class="request-meta-item"><strong>Executor:</strong> ${Utils.escapeHtml(request.executor)}</div>` : ''}
                             <div class="request-meta-item">
-                                <strong>Created:</strong> ${Utils.formatDateTime(request.created_at)}
+                                <strong>Created:</strong> ${Utils.formatDateTime(request.createdAt)}
                             </div>
-                            ${request.deadline ? `<div class="request-meta-item"><strong>Deadline:</strong> ${Utils.formatDateTime(request.deadline)}</div>` : ''}
+                            ${request.dueDate ? `<div class="request-meta-item"><strong>Deadline:</strong> ${Utils.formatDateTime(request.dueDate)}</div>` : ''}
                         </div>
                     </div>
                     <div class="request-actions">

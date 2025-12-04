@@ -98,6 +98,11 @@ const API = (() => {
             if (filters.type) params.append('type', filters.type);
             if (filters.status) params.append('status', filters.status);
             if (filters.executor) params.append('executor', filters.executor);
+            if (filters.address) params.append('address', filters.address);
+            if (filters.territory) params.append('territory', filters.territory);
+            if (filters.social_group_id) params.append('social_group_id', filters.social_group_id);
+            if (filters.intake_form_id) params.append('intake_form_id', filters.intake_form_id);
+            if (filters.contact_channel) params.append('contact_channel', filters.contact_channel);
             if (filters.date_from) params.append('date_from', filters.date_from);
             if (filters.date_to) params.append('date_to', filters.date_to);
             if (filters.search) params.append('search', filters.search);
@@ -112,13 +117,33 @@ const API = (() => {
         create: (data, file = null) => {
             if (file) {
                 const formData = new FormData();
-                formData.append('type', data.type);
+                formData.append('citizenFio', data.citizenFio || '');
                 formData.append('description', data.description);
-                formData.append('location', data.location);
-                if (data.deadline) {
-                    formData.append('deadline', data.deadline);
+                formData.append('address', data.address || '');
+                formData.append('contactEmail', data.contactEmail || '');
+                formData.append('contactPhone', data.contactPhone || '');
+                if (data.requestTypeId) {
+                    formData.append('requestTypeId', data.requestTypeId);
                 }
-                formData.append('attachment', file);
+                if (data.requestTopicId) {
+                    formData.append('requestTopicId', data.requestTopicId);
+                }
+                if (data.dueDate) {
+                    formData.append('dueDate', data.dueDate);
+                }
+                if (data.socialGroupId) {
+                    formData.append('socialGroupId', data.socialGroupId);
+                }
+                if (data.intakeFormId) {
+                    formData.append('intakeFormId', data.intakeFormId);
+                }
+                if (data.territory) {
+                    formData.append('territory', data.territory);
+                }
+                if (data.contactChannel) {
+                    formData.append('contactChannel', data.contactChannel);
+                }
+                formData.append('attachments', file);
 
                 return request('/requests', {
                     method: 'POST',
@@ -135,7 +160,7 @@ const API = (() => {
 
         update: (id, data) => {
             return request(`/requests/${id}`, {
-                method: 'PUT',
+                method: 'PATCH',
                 body: data,
             });
         },
