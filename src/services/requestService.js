@@ -1,10 +1,11 @@
-const { insertRequest, updateRequest, getRequestById, listRequests, insertFiles, getFilesByRequestId, getFileById, logAction } = require('../models/requestModel');
+const { insertRequest, updateRequest, getRequestById, listRequests, insertFiles, getFilesByRequestId, getFileById, logProceeding } = require('../models/requestModel');
 const { findTypeById, findTopicById } = require('../models/nomenclatureModel');
 const { calculateControlStatus } = require('../utils/deadline');
 const { notifyDeadlineStatus } = require('../utils/notifications');
 const { clean } = require('../utils/sanitize');
 const { MAX_ATTACHMENTS, REQUEST_STATUSES, PRIORITIES } = require('../config');
 const { getDb } = require('../db');
+const { logAuditEntry } = require('../utils/audit');
 
 async function createRequest(payload, files = []) {
   await ensureTypeAndTopic(payload);
@@ -238,14 +239,19 @@ function parseId(value) {
 
 async function logMutation(requestId, action, payload) {
   const timestamp = new Date().toISOString();
-  const serialized = JSON.stringify(payload || {});
-  await logAction('audit_log', {
+  const normalizedPayload = payload || {};
+  const serialized = JSON.stringify(normalizedPayload);
+
+  await logAuditEntry({
+    user_id: null,
     request_id: requestId,
     action,
-    details: serialized,
+    entity_type: 'request',
+    payload: normalizedPayload,
     created_at: timestamp
   });
-  await logAction('request_proceedings', {
+
+  await logProceeding({
     request_id: requestId,
     action,
     details: serialized,
