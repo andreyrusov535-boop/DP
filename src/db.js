@@ -64,6 +64,20 @@ async function createSchema() {
       active INTEGER DEFAULT 1
     );
 
+    CREATE TABLE IF NOT EXISTS social_groups (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      code TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      active INTEGER DEFAULT 1
+    );
+
+    CREATE TABLE IF NOT EXISTS intake_forms (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      code TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      active INTEGER DEFAULT 1
+    );
+
     CREATE TABLE IF NOT EXISTS requests (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       citizen_fio TEXT NOT NULL,
@@ -72,15 +86,24 @@ async function createSchema() {
       request_type_id INTEGER,
       request_topic_id INTEGER,
       description TEXT,
+      address TEXT,
+      territory TEXT,
+      social_group_id INTEGER,
+      intake_form_id INTEGER,
+      contact_channel TEXT,
       status TEXT NOT NULL DEFAULT 'new',
       executor TEXT,
       priority TEXT NOT NULL DEFAULT 'medium',
       due_date TEXT,
       control_status TEXT NOT NULL DEFAULT 'no',
+      removed_from_control_at TEXT,
+      removed_from_control_by TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       FOREIGN KEY (request_type_id) REFERENCES request_types(id),
-      FOREIGN KEY (request_topic_id) REFERENCES request_topics(id)
+      FOREIGN KEY (request_topic_id) REFERENCES request_topics(id),
+      FOREIGN KEY (social_group_id) REFERENCES social_groups(id),
+      FOREIGN KEY (intake_form_id) REFERENCES intake_forms(id)
     );
 
     CREATE TABLE IF NOT EXISTS files (
@@ -115,6 +138,15 @@ async function createSchema() {
       FOREIGN KEY (request_id) REFERENCES requests(id) ON DELETE CASCADE
     );
 
+    CREATE VIRTUAL TABLE IF NOT EXISTS request_search USING fts5(
+      id UNINDEXED,
+      citizen_fio,
+      description,
+      address,
+      territory,
+      executor
+    );
+
     CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
     CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
     CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
@@ -125,8 +157,27 @@ async function createSchema() {
     CREATE INDEX IF NOT EXISTS idx_requests_executor ON requests(executor);
     CREATE INDEX IF NOT EXISTS idx_requests_due_date ON requests(due_date);
     CREATE INDEX IF NOT EXISTS idx_requests_control_status ON requests(control_status);
+    CREATE INDEX IF NOT EXISTS idx_requests_social_group ON requests(social_group_id);
+    CREATE INDEX IF NOT EXISTS idx_requests_intake_form ON requests(intake_form_id);
+    CREATE INDEX IF NOT EXISTS idx_requests_address ON requests(address);
+    CREATE INDEX IF NOT EXISTS idx_requests_territory ON requests(territory);
     CREATE INDEX IF NOT EXISTS idx_audit_log_user_id ON audit_log(user_id);
     CREATE INDEX IF NOT EXISTS idx_audit_log_action ON audit_log(action);
+
+    CREATE TRIGGER IF NOT EXISTS request_ai AFTER INSERT ON requests BEGIN
+      INSERT INTO request_search(id, citizen_fio, description, address, territory, executor)
+      VALUES (new.id, new.citizen_fio, new.description, new.address, new.territory, new.executor);
+    END;
+
+    CREATE TRIGGER IF NOT EXISTS request_ad AFTER DELETE ON requests BEGIN
+      DELETE FROM request_search WHERE id = old.id;
+    END;
+
+    CREATE TRIGGER IF NOT EXISTS request_au AFTER UPDATE ON requests BEGIN
+      DELETE FROM request_search WHERE id = old.id;
+      INSERT INTO request_search(id, citizen_fio, description, address, territory, executor)
+      VALUES (new.id, new.citizen_fio, new.description, new.address, new.territory, new.executor);
+    END;
   `);
 }
 
@@ -158,6 +209,42 @@ async function seedNomenclature() {
     const insert = await dbInstance.prepare('INSERT INTO request_topics (code, name) VALUES (?, ?)');
     try {
       for (const item of defaultTopics) {
+        await insert.run(item.code, item.name);
+      }
+    } finally {
+      await insert.finalize();
+    }
+  }
+
+  const { count: socialGroupCount } = await dbInstance.get('SELECT COUNT(*) as count FROM social_groups');
+  if (socialGroupCount === 0) {
+    const defaultSocialGroups = [
+      { code: 'families', name: 'Families with Children' },
+      { code: 'elderly', name: 'Elderly Residents' },
+      { code: 'disabled', name: 'Persons with Disabilities' },
+      { code: 'low_income', name: 'Low-Income Residents' }
+    ];
+    const insert = await dbInstance.prepare('INSERT INTO social_groups (code, name) VALUES (?, ?)');
+    try {
+      for (const item of defaultSocialGroups) {
+        await insert.run(item.code, item.name);
+      }
+    } finally {
+      await insert.finalize();
+    }
+  }
+
+  const { count: intakeFormCount } = await dbInstance.get('SELECT COUNT(*) as count FROM intake_forms');
+  if (intakeFormCount === 0) {
+    const defaultIntakeForms = [
+      { code: 'online', name: 'Online Form' },
+      { code: 'phone', name: 'Phone Call' },
+      { code: 'in_person', name: 'In-Person' },
+      { code: 'email', name: 'Email' }
+    ];
+    const insert = await dbInstance.prepare('INSERT INTO intake_forms (code, name) VALUES (?, ?)');
+    try {
+      for (const item of defaultIntakeForms) {
         await insert.run(item.code, item.name);
       }
     } finally {

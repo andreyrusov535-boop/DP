@@ -169,8 +169,135 @@ describe('Request workflow API', () => {
     expect(response.status).toBe(200);
     expect(Array.isArray(response.body.types)).toBe(true);
     expect(Array.isArray(response.body.topics)).toBe(true);
+    expect(Array.isArray(response.body.socialGroups)).toBe(true);
+    expect(Array.isArray(response.body.intakeForms)).toBe(true);
     expect(response.body.types.length).toBeGreaterThan(0);
     expect(response.body.topics.length).toBeGreaterThan(0);
+    expect(response.body.socialGroups.length).toBeGreaterThan(0);
+    expect(response.body.intakeForms.length).toBeGreaterThan(0);
+  });
+
+  it('creates request with new metadata fields (address, territory, social group, intake form)', async () => {
+    const dueDate = futureHours(72);
+    const response = await request(app)
+      .post('/api/requests')
+      .send({
+        citizenFio: 'Metadata Citizen',
+        description: 'Request with rich metadata',
+        contactEmail: 'metadata@example.com',
+        address: '123 Main Street, Downtown',
+        territory: 'Zone A',
+        socialGroupId: 1,
+        intakeFormId: 1,
+        contactChannel: 'phone',
+        requestTypeId: 1,
+        dueDate
+      });
+
+    expect(response.status).toBe(201);
+    expect(response.body.address).toBe('123 Main Street, Downtown');
+    expect(response.body.territory).toBe('Zone A');
+    expect(response.body.contactChannel).toBe('phone');
+    expect(response.body.socialGroup).not.toBeNull();
+    expect(response.body.socialGroup.id).toBe(1);
+    expect(response.body.intakeForm).not.toBeNull();
+    expect(response.body.intakeForm.id).toBe(1);
+  });
+
+  it('filters requests by address, territory, social group, and intake form', async () => {
+    await createJsonRequest({
+      address: '123 Main Street',
+      territory: 'Downtown',
+      socialGroupId: 1,
+      intakeFormId: 1,
+      contactChannel: 'phone'
+    });
+
+    await createJsonRequest({
+      address: '456 Oak Avenue',
+      territory: 'Uptown',
+      socialGroupId: 2,
+      intakeFormId: 2,
+      contactChannel: 'email'
+    });
+
+    const addressFilter = await request(app)
+      .get('/api/requests')
+      .query({ address: 'Main Street' });
+    expect(addressFilter.status).toBe(200);
+    expect(addressFilter.body.data.length).toBe(1);
+    expect(addressFilter.body.data[0].address).toContain('Main Street');
+
+    const territoryFilter = await request(app)
+      .get('/api/requests')
+      .query({ territory: 'Uptown' });
+    expect(territoryFilter.status).toBe(200);
+    expect(territoryFilter.body.data.length).toBe(1);
+    expect(territoryFilter.body.data[0].territory).toBe('Uptown');
+
+    const socialGroupFilter = await request(app)
+      .get('/api/requests')
+      .query({ social_group_id: 1 });
+    expect(socialGroupFilter.status).toBe(200);
+    expect(socialGroupFilter.body.data.length).toBe(1);
+    expect(socialGroupFilter.body.data[0].socialGroup.id).toBe(1);
+
+    const intakeFormFilter = await request(app)
+      .get('/api/requests')
+      .query({ intake_form_id: 2 });
+    expect(intakeFormFilter.status).toBe(200);
+    expect(intakeFormFilter.body.data.length).toBe(1);
+    expect(intakeFormFilter.body.data[0].intakeForm.id).toBe(2);
+  });
+
+  it('searches requests using full-text search (FTS)', async () => {
+    await createJsonRequest({
+      description: 'Water pipeline broken in downtown area',
+      address: '123 Main Street',
+      territory: 'Downtown Zone'
+    });
+
+    await createJsonRequest({
+      description: 'Street lighting outage',
+      address: '456 Oak Avenue',
+      territory: 'Uptown Zone'
+    });
+
+    const searchByPhrase = await request(app)
+      .get('/api/requests')
+      .query({ search: 'water pipeline' });
+
+    expect(searchByPhrase.status).toBe(200);
+    expect(searchByPhrase.body.data.length).toBe(1);
+    expect(searchByPhrase.body.data[0].description.toLowerCase()).toContain('water');
+
+    const searchByAddressWord = await request(app)
+      .get('/api/requests')
+      .query({ search: 'downtown' });
+
+    expect(searchByAddressWord.status).toBe(200);
+    expect(searchByAddressWord.body.data.length).toBeGreaterThan(0);
+  });
+
+  it('updates request with new metadata fields', async () => {
+    const created = await createJsonRequest();
+
+    const updated = await request(app)
+      .patch(`/api/requests/${created.id}`)
+      .send({
+        address: 'Updated Address 789',
+        territory: 'New Zone',
+        socialGroupId: 2,
+        intakeFormId: 2,
+        contactChannel: 'email'
+      });
+
+    expect(updated.status).toBe(200);
+    expect(updated.body.address).toBe('Updated Address 789');
+    expect(updated.body.territory).toBe('New Zone');
+    expect(updated.body.socialGroup.id).toBe(2);
+    expect(updated.body.intakeForm.id).toBe(2);
+    expect(updated.body.contactChannel).toBe('email');
   });
 });
 
@@ -200,6 +327,7 @@ async function resetDatabase() {
     DELETE FROM files;
     DELETE FROM audit_log;
     DELETE FROM request_proceedings;
+    DELETE FROM request_search;
     DELETE FROM requests;
   `);
 }

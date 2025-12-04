@@ -1,5 +1,5 @@
 const { insertRequest, updateRequest, getRequestById, listRequests, insertFiles, getFilesByRequestId, getFileById, logProceeding } = require('../models/requestModel');
-const { findTypeById, findTopicById } = require('../models/nomenclatureModel');
+const { findTypeById, findTopicById, findSocialGroupById, findIntakeFormById } = require('../models/nomenclatureModel');
 const { calculateControlStatus } = require('../utils/deadline');
 const { notifyDeadlineStatus } = require('../utils/notifications');
 const { clean } = require('../utils/sanitize');
@@ -166,6 +166,26 @@ async function ensureTypeAndTopic(payload) {
       throw new Error('Invalid request topic reference');
     }
   }
+  if (payload.socialGroupId !== undefined) {
+    const socialGroupId = Number(payload.socialGroupId);
+    if (Number.isNaN(socialGroupId)) {
+      throw new Error('Invalid social group reference');
+    }
+    const socialGroup = await findSocialGroupById(socialGroupId);
+    if (!socialGroup) {
+      throw new Error('Invalid social group reference');
+    }
+  }
+  if (payload.intakeFormId !== undefined) {
+    const intakeFormId = Number(payload.intakeFormId);
+    if (Number.isNaN(intakeFormId)) {
+      throw new Error('Invalid intake form reference');
+    }
+    const intakeForm = await findIntakeFormById(intakeFormId);
+    if (!intakeForm) {
+      throw new Error('Invalid intake form reference');
+    }
+  }
 }
 
 function validateStatusAndPriority(payload) {
@@ -187,6 +207,11 @@ function sanitizePayload(payload, isUpdate = false) {
   if (has('requestTypeId')) sanitized.request_type_id = Number(payload.requestTypeId);
   if (has('requestTopicId')) sanitized.request_topic_id = Number(payload.requestTopicId);
   if (has('description')) sanitized.description = clean(payload.description);
+  if (has('address')) sanitized.address = clean(payload.address);
+  if (has('territory')) sanitized.territory = clean(payload.territory);
+  if (has('socialGroupId')) sanitized.social_group_id = Number(payload.socialGroupId);
+  if (has('intakeFormId')) sanitized.intake_form_id = Number(payload.intakeFormId);
+  if (has('contactChannel')) sanitized.contact_channel = clean(payload.contactChannel);
   if (has('status')) sanitized.status = payload.status;
   if (has('executor')) sanitized.executor = clean(payload.executor);
   if (has('priority')) sanitized.priority = payload.priority;
@@ -214,6 +239,11 @@ function buildFilters(query) {
     status: query.status,
     executor: query.executor ? clean(query.executor) : undefined,
     priority: query.priority,
+    address: query.address ? clean(query.address) : undefined,
+    territory: query.territory ? clean(query.territory) : undefined,
+    socialGroupId: parseId(query.social_group_id),
+    intakeFormId: parseId(query.intake_form_id),
+    contactChannel: query.contact_channel,
     dateFrom: query.date_from,
     dateTo: query.date_to,
     search: query.search ? clean(query.search) : undefined
@@ -265,11 +295,20 @@ function mapRequest(row, files) {
     citizenFio: row.citizen_fio,
     contactPhone: row.contact_phone,
     contactEmail: row.contact_email,
+    address: row.address,
+    territory: row.territory,
+    contactChannel: row.contact_channel,
     requestType: row.request_type_id
       ? { id: row.request_type_id, name: row.request_type_name }
       : null,
     requestTopic: row.request_topic_id
       ? { id: row.request_topic_id, name: row.request_topic_name }
+      : null,
+    socialGroup: row.social_group_id
+      ? { id: row.social_group_id, name: row.social_group_name }
+      : null,
+    intakeForm: row.intake_form_id
+      ? { id: row.intake_form_id, name: row.intake_form_name }
       : null,
     description: row.description,
     status: row.status,

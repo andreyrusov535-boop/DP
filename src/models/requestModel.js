@@ -6,7 +6,9 @@ const SORTABLE_FIELDS = {
   priority: 'r.priority',
   status: 'r.status',
   control_status: 'r.control_status',
-  citizen_fio: 'r.citizen_fio'
+  citizen_fio: 'r.citizen_fio',
+  address: 'r.address',
+  territory: 'r.territory'
 };
 
 async function insertRequest(record) {
@@ -19,6 +21,11 @@ async function insertRequest(record) {
       request_type_id,
       request_topic_id,
       description,
+      address,
+      territory,
+      social_group_id,
+      intake_form_id,
+      contact_channel,
       status,
       executor,
       priority,
@@ -26,7 +33,7 @@ async function insertRequest(record) {
       control_status,
       created_at,
       updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   const result = await db.run(sql, [
@@ -36,6 +43,11 @@ async function insertRequest(record) {
     record.request_type_id ?? null,
     record.request_topic_id ?? null,
     record.description ?? null,
+    record.address ?? null,
+    record.territory ?? null,
+    record.social_group_id ?? null,
+    record.intake_form_id ?? null,
+    record.contact_channel ?? null,
     record.status,
     record.executor ?? null,
     record.priority,
@@ -72,10 +84,16 @@ async function updateRequest(id, updates) {
 async function getRequestById(id) {
   const db = getDb();
   const sql = `
-    SELECT r.*, t.name AS request_type_name, topic.name AS request_topic_name
+    SELECT r.*, 
+           t.name AS request_type_name, 
+           topic.name AS request_topic_name,
+           sg.name AS social_group_name,
+           inf.name AS intake_form_name
     FROM requests r
     LEFT JOIN request_types t ON r.request_type_id = t.id
     LEFT JOIN request_topics topic ON r.request_topic_id = topic.id
+    LEFT JOIN social_groups sg ON r.social_group_id = sg.id
+    LEFT JOIN intake_forms inf ON r.intake_form_id = inf.id
     WHERE r.id = ?
   `;
   return db.get(sql, id);
@@ -110,6 +128,26 @@ async function listRequests({ filters, limit, offset, sortBy, sortOrder }) {
     where.push('r.priority = ?');
     params.push(filters.priority);
   }
+  if (filters.address) {
+    where.push('LOWER(r.address) LIKE LOWER(?)');
+    params.push(`%${filters.address}%`);
+  }
+  if (filters.territory) {
+    where.push('LOWER(r.territory) LIKE LOWER(?)');
+    params.push(`%${filters.territory}%`);
+  }
+  if (filters.socialGroupId) {
+    where.push('r.social_group_id = ?');
+    params.push(filters.socialGroupId);
+  }
+  if (filters.intakeFormId) {
+    where.push('r.intake_form_id = ?');
+    params.push(filters.intakeFormId);
+  }
+  if (filters.contactChannel) {
+    where.push('r.contact_channel = ?');
+    params.push(filters.contactChannel);
+  }
   if (filters.dateFrom) {
     where.push('date(r.due_date) >= date(?)');
     params.push(filters.dateFrom);
@@ -118,16 +156,10 @@ async function listRequests({ filters, limit, offset, sortBy, sortOrder }) {
     where.push('date(r.due_date) <= date(?)');
     params.push(filters.dateTo);
   }
+  
   if (filters.search) {
-    const searchClause = [
-      'LOWER(r.description) LIKE LOWER(?)',
-      'LOWER(r.citizen_fio) LIKE LOWER(?)',
-      'LOWER(r.executor) LIKE LOWER(?)',
-      'LOWER(r.contact_email) LIKE LOWER(?)'
-    ].join(' OR ');
-    where.push(`(${searchClause})`);
-    const term = `%${filters.search}%`;
-    params.push(term, term, term, term);
+    where.push('r.id IN (SELECT id FROM request_search WHERE request_search MATCH ?)');
+    params.push(filters.search);
   }
 
   const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
@@ -139,10 +171,16 @@ async function listRequests({ filters, limit, offset, sortBy, sortOrder }) {
   const { total } = await db.get(countSql, countParams);
 
   const dataSql = `
-    SELECT r.*, t.name AS request_type_name, topic.name AS request_topic_name
+    SELECT r.*, 
+           t.name AS request_type_name, 
+           topic.name AS request_topic_name,
+           sg.name AS social_group_name,
+           inf.name AS intake_form_name
     FROM requests r
     LEFT JOIN request_types t ON r.request_type_id = t.id
     LEFT JOIN request_topics topic ON r.request_topic_id = topic.id
+    LEFT JOIN social_groups sg ON r.social_group_id = sg.id
+    LEFT JOIN intake_forms inf ON r.intake_form_id = inf.id
     ${whereClause}
     ORDER BY ${sortField} ${sortDirection}
     LIMIT ? OFFSET ?
