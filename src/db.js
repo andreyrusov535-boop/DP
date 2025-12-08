@@ -55,6 +55,22 @@ async function applyMigrations() {
     }
   }
 
+  // Add removed_from_control_by_user_id column to requests if it doesn't exist
+  try {
+    const columns = await dbInstance.all('PRAGMA table_info(requests)');
+    const hasRemovedFromControlByUserId = columns.some((col) => col.name === 'removed_from_control_by_user_id');
+
+    if (!hasRemovedFromControlByUserId) {
+      await dbInstance.exec(
+        'ALTER TABLE requests ADD COLUMN removed_from_control_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL;'
+      );
+    }
+  } catch (error) {
+    if (!error.message.includes('duplicate column')) {
+      console.warn('[db] Migration for removed_from_control_by_user_id skipped or completed:', error.message);
+    }
+  }
+
   // Create deadline_notifications table if it doesn't exist
   try {
     await dbInstance.exec(`
@@ -76,6 +92,7 @@ async function applyMigrations() {
   try {
     await dbInstance.exec(`
       CREATE INDEX IF NOT EXISTS idx_requests_executor_user_id ON requests(executor_user_id);
+      CREATE INDEX IF NOT EXISTS idx_requests_removed_from_control_by_user_id ON requests(removed_from_control_by_user_id);
       CREATE INDEX IF NOT EXISTS idx_deadline_notifications_request_id ON deadline_notifications(request_id);
       CREATE INDEX IF NOT EXISTS idx_deadline_notifications_notification_type ON deadline_notifications(notification_type);
     `);

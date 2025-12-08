@@ -90,12 +90,14 @@ async function getRequestById(id) {
            t.name AS request_type_name, 
            topic.name AS request_topic_name,
            sg.name AS social_group_name,
-           inf.name AS intake_form_name
+           inf.name AS intake_form_name,
+           u.name AS removed_by_user_name
     FROM requests r
     LEFT JOIN request_types t ON r.request_type_id = t.id
     LEFT JOIN request_topics topic ON r.request_topic_id = topic.id
     LEFT JOIN social_groups sg ON r.social_group_id = sg.id
     LEFT JOIN intake_forms inf ON r.intake_form_id = inf.id
+    LEFT JOIN users u ON r.removed_from_control_by_user_id = u.id
     WHERE r.id = ?
   `;
   return db.get(sql, id);
@@ -177,12 +179,14 @@ async function listRequests({ filters, limit, offset, sortBy, sortOrder }) {
            t.name AS request_type_name, 
            topic.name AS request_topic_name,
            sg.name AS social_group_name,
-           inf.name AS intake_form_name
+           inf.name AS intake_form_name,
+           u.name AS removed_by_user_name
     FROM requests r
     LEFT JOIN request_types t ON r.request_type_id = t.id
     LEFT JOIN request_topics topic ON r.request_topic_id = topic.id
     LEFT JOIN social_groups sg ON r.social_group_id = sg.id
     LEFT JOIN intake_forms inf ON r.intake_form_id = inf.id
+    LEFT JOIN users u ON r.removed_from_control_by_user_id = u.id
     ${whereClause}
     ORDER BY ${sortField} ${sortDirection}
     LIMIT ? OFFSET ?

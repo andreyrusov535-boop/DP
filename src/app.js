@@ -115,7 +115,7 @@ app.use((err, _req, res, _next) => {
 
   if (err.message) {
     const lower = err.message.toLowerCase();
-    const clientKeywords = ['invalid', 'unsupported', 'limit', 'reference', 'required', 'cannot', 'active', 'must have', 'not found', 'already exists', 'duplicate'];
+    const clientKeywords = ['invalid', 'unsupported', 'limit', 'reference', 'required', 'cannot', 'active', 'must have', 'not found', 'already exists', 'duplicate', 'already'];
     if (clientKeywords.some((keyword) => lower.includes(keyword))) {
       return res.status(400).json({ message: err.message });
     }

@@ -1,7 +1,7 @@
 const { insertRequest, updateRequest, getRequestById, listRequests, insertFiles, getFilesByRequestId, getFileById, logProceeding } = require('../models/requestModel');
 const { findTypeById, findTopicById, findSocialGroupById, findIntakeFormById } = require('../models/nomenclatureModel');
 const { calculateControlStatus } = require('../utils/deadline');
-const { notifyDeadlineStatus } = require('../utils/notifications');
+const { notifyDeadlineStatus, sendEmail, buildNotificationMessage } = require('../utils/notifications');
 const { clean } = require('../utils/sanitize');
 const { MAX_ATTACHMENTS, REQUEST_STATUSES, PRIORITIES } = require('../config');
 const { getDb } = require('../db');
@@ -336,6 +336,9 @@ function mapRequest(row, files) {
     priority: row.priority,
     dueDate: row.due_date,
     controlStatus: row.control_status,
+    removedFromControlAt: row.removed_from_control_at,
+    removedFromControlBy: row.removed_from_control_by,
+    removedFromControlByUserId: row.removed_from_control_by_user_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     attachments: files.map((file) => ({
@@ -370,11 +373,86 @@ function triggerDeadlineNotification(requestId, record, status) {
   }
 }
 
+async function removeRequestFromControl({ id, note, user }) {
+  const request = await getRequestById(id);
+  
+  if (!request) {
+    throw new Error('Request not found');
+  }
+
+  if (request.status === 'removed') {
+    throw new Error('Request is already removed from control');
+  }
+
+  if (request.status === 'completed' || request.status === 'archived') {
+    throw new Error('Cannot remove completed or archived requests from control');
+  }
+
+  const actingUser = await getUserById(user.userId);
+  const userName = actingUser ? actingUser.name : user.email;
+
+  const now = new Date().toISOString();
+  const updates = {
+    status: 'removed',
+    removed_from_control_at: now,
+    removed_from_control_by: userName,
+    removed_from_control_by_user_id: user.userId
+  };
+
+  await updateRequest(id, updates);
+
+  const auditPayload = {
+    note: note || null,
+    previous_status: request.status,
+    removed_by: userName,
+    removed_by_user_id: user.userId
+  };
+
+  await logAuditEntry({
+    user_id: user.userId,
+    request_id: id,
+    action: 'remove_from_control',
+    entity_type: 'request',
+    payload: auditPayload,
+    created_at: now
+  });
+
+  const proceedingNote = note ? `Removed from control. Reason: ${note}` : 'Removed from control';
+  await logProceeding({
+    request_id: id,
+    action: 'remove_from_control',
+    details: proceedingNote,
+    created_at: now
+  });
+
+  if (request.contact_email) {
+    try {
+      const notificationData = buildNotificationMessage(
+        id,
+        {
+          citizenFio: request.citizen_fio,
+          description: request.description,
+          removedBy: userName,
+          note: note
+        },
+        'removed_from_control'
+      );
+
+      await sendEmail(request.contact_email, notificationData.subject, notificationData.html);
+    } catch (error) {
+      console.error(`Failed to send removal notification for request #${id}:`, error.message);
+    }
+  }
+
+  return fetchRequestWithFiles(id);
+}
+
 module.exports = {
   createRequest,
   updateRequestById,
   fetchRequestWithFiles,
   fetchRequestsList,
   refreshAllControlStatuses,
-  getAttachmentById
+  getAttachmentById,
+  removeRequestFromControl
 };

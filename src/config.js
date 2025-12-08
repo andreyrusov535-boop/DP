@@ -35,7 +35,7 @@ module.exports = {
 
   // Request Constants
   DEADLINE_APPROACHING_THRESHOLD_HOURS: 48,
-  REQUEST_STATUSES: ['new', 'in_progress', 'paused', 'completed', 'archived'],
+  REQUEST_STATUSES: ['new', 'in_progress', 'paused', 'completed', 'archived', 'cancelled', 'removed'],
   PRIORITIES: ['low', 'medium', 'high', 'urgent'],
 
   // Notification Settings
