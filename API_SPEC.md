@@ -87,6 +87,53 @@ Returns both request types and topics.
 - `GET /api/nomenclature/types`
 - `GET /api/nomenclature/topics`
 
+## Nomenclature Admin API (Reference Data Management)
+
+All nomenclature admin endpoints require **authentication** with `supervisor` or `admin` role.
+
+### `GET /api/nomenclature-admin/:entity`
+List nomenclature items for a given entity type.
+
+- **Path params**: `entity` (one of: `request_types`, `request_topics`, `intake_forms`, `social_groups`)
+- **Query params**:
+  - `limit` (default 50, max 100): Page size
+  - `offset` (default 0): Pagination offset
+  - `includeInactive` (default false): Include deactivated items
+
+- **Response**: `{ items: [], total: number, limit: number, offset: number, page: number }`
+
+### `GET /api/nomenclature-admin/:entity/:id`
+Get a specific nomenclature item.
+
+- **Path params**: `entity`, `id` (integer)
+- **Query params**: `includeInactive` (optional)
+- **Response**: `{ id, code, name, active }`
+
+### `POST /api/nomenclature-admin/:entity`
+Create a new nomenclature item.
+
+- **Path params**: `entity`
+- **Body**: `{ code (string, required), name (string, required) }`
+- **Validation**: Code must be unique per entity, both fields must be non-empty
+- **Response**: created item object with status 201
+
+### `PATCH /api/nomenclature-admin/:entity/:id`
+Update nomenclature item code and/or name.
+
+- **Path params**: `entity`, `id`
+- **Body**: `{ code? (string), name? (string) }` (at least one field required)
+- **Validation**: Code uniqueness enforced, empty values rejected
+- **Response**: updated item object
+
+### `PATCH /api/nomenclature-admin/:entity/:id/toggle`
+Toggle the active status of an item.
+
+- **Path params**: `entity`, `id`
+- **Body**: `{ active (boolean, required) }`
+- **Response**: updated item object
+
+All create/update operations are logged in `audit_log` with action type: `create`, `update`, `activate`, or `deactivate`.
+
 ### `GET /api/reports/overview`
 Returns aggregated analytics overview. **Requires authentication with supervisor or admin role.**
 

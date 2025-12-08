@@ -191,6 +191,43 @@ const API = (() => {
         getOverview: () => request('/stats/overview'),
     };
 
+    // Nomenclature Admin API
+    const nomenclatureAdmin = {
+        list: (entity, options = {}) => {
+            const params = new URLSearchParams();
+            if (options.limit) params.append('limit', options.limit);
+            if (options.offset) params.append('offset', options.offset);
+            if (options.includeInactive) params.append('includeInactive', options.includeInactive);
+
+            const queryString = params.toString();
+            const url = queryString ? `/nomenclature-admin/${entity}?${queryString}` : `/nomenclature-admin/${entity}`;
+            return request(url);
+        },
+
+        get: (entity, id) => request(`/nomenclature-admin/${entity}/${id}`),
+
+        create: (entity, data) => {
+            return request(`/nomenclature-admin/${entity}`, {
+                method: 'POST',
+                body: data,
+            });
+        },
+
+        update: (entity, id, data) => {
+            return request(`/nomenclature-admin/${entity}/${id}`, {
+                method: 'PATCH',
+                body: data,
+            });
+        },
+
+        toggleActive: (entity, id, active) => {
+            return request(`/nomenclature-admin/${entity}/${id}/toggle`, {
+                method: 'PATCH',
+                body: { active },
+            });
+        },
+    };
+
     // Reports API
     const reports = {
         getOverview: (filters = {}) => {
@@ -289,6 +326,7 @@ const API = (() => {
         request,
         requests,
         stats,
+        nomenclatureAdmin,
         reports,
         getCsrfToken,
     };

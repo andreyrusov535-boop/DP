@@ -41,12 +41,12 @@ async function closeDb() {
 async function applyMigrations() {
   // Add executor_user_id column to requests if it doesn't exist
   try {
-    const columns = await dbInstance.all(`PRAGMA table_info(requests)`);
+    const columns = await dbInstance.all('PRAGMA table_info(requests)');
     const hasExecutorUserId = columns.some((col) => col.name === 'executor_user_id');
 
     if (!hasExecutorUserId) {
       await dbInstance.exec(
-        `ALTER TABLE requests ADD COLUMN executor_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL;`
+        'ALTER TABLE requests ADD COLUMN executor_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL;'
       );
     }
   } catch (error) {

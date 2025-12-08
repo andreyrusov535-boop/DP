@@ -97,9 +97,12 @@
                             Create Request
                         </button>
                         <button id="nav-reports" class="nav-item" data-section="reports" aria-label="View reports and analytics" style="display: none;">
-                            Reports
-                        </button>
-                    </nav>
+                             Reports
+                         </button>
+                         <button id="nav-reference-data" class="nav-item" data-section="reference-data" aria-label="Manage reference data" style="display: none;">
+                             Reference Data
+                         </button>
+                        </nav>
                 </aside>
 
                 <!-- Main Content -->
@@ -414,6 +417,95 @@
                                         <!-- Populated dynamically -->
                                     </tbody>
                                 </table>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Reference Data Section -->
+                    <section id="reference-data-section" class="section">
+                        <h2>Reference Data Management</h2>
+                        
+                        <!-- Nomenclature Tabs -->
+                        <div class="nomenclature-tabs">
+                            <button class="nomenclature-tab-btn active" data-nomenclature="request_types" aria-label="Request Types">
+                                Request Types
+                            </button>
+                            <button class="nomenclature-tab-btn" data-nomenclature="request_topics" aria-label="Request Topics">
+                                Request Topics
+                            </button>
+                            <button class="nomenclature-tab-btn" data-nomenclature="intake_forms" aria-label="Intake Forms">
+                                Intake Forms
+                            </button>
+                            <button class="nomenclature-tab-btn" data-nomenclature="social_groups" aria-label="Social Groups">
+                                Social Groups
+                            </button>
+                        </div>
+
+                        <!-- Nomenclature Content -->
+                        <div id="reference-data-content" class="reference-data-content">
+                            <!-- Create New Item Form -->
+                            <div class="reference-data-form">
+                                <h3>Create New Item</h3>
+                                <form id="reference-data-create-form" class="nomenclature-form">
+                                    <div class="form-group">
+                                        <label for="ref-code">Code *</label>
+                                        <input type="text" id="ref-code" name="code" required aria-label="Item code" placeholder="e.g., RT001" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="ref-name">Name *</label>
+                                        <input type="text" id="ref-name" name="name" required aria-label="Item name" placeholder="e.g., Water Supply" />
+                                    </div>
+                                    <button type="submit" class="btn btn-primary" aria-label="Create item">Create Item</button>
+                                    <div id="reference-data-message" class="message"></div>
+                                </form>
+                            </div>
+
+                            <!-- Items List/Table -->
+                            <div class="reference-data-list">
+                                <div id="ref-loading" class="loading-indicator" style="display: none;">
+                                    <div class="spinner"></div>
+                                    <p>Loading reference data...</p>
+                                </div>
+                                <div id="ref-list-container" class="table-wrapper">
+                                    <table id="reference-data-table" class="reference-data-table" aria-label="Reference data items table">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Code</th>
+                                                <th>Name</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="reference-data-table-body">
+                                            <!-- Populated dynamically -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Edit Item Modal -->
+                        <div id="ref-edit-modal" class="modal" style="display: none;">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h2>Edit Item</h2>
+                                    <button id="ref-edit-modal-close" class="btn btn-close" aria-label="Close modal">&times;</button>
+                                </div>
+                                <form id="ref-edit-form" class="nomenclature-form">
+                                    <input type="hidden" id="ref-edit-id" />
+                                    <input type="hidden" id="ref-edit-entity" />
+                                    <div class="form-group">
+                                        <label for="ref-edit-code">Code *</label>
+                                        <input type="text" id="ref-edit-code" name="code" required aria-label="Item code" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="ref-edit-name">Name *</label>
+                                        <input type="text" id="ref-edit-name" name="name" required aria-label="Item name" />
+                                    </div>
+                                    <button type="submit" class="btn btn-primary" aria-label="Save changes">Save Changes</button>
+                                    <div id="ref-edit-message" class="message"></div>
+                                </form>
                             </div>
                         </div>
                     </section>

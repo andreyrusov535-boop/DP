@@ -30,14 +30,24 @@ This is a responsive HTML/CSS/Vanilla JavaScript frontend for a Request Manageme
   - Deadline scheduling
 
 - **Reports & Analytics** (Supervisors/Admins only):
-  - Interactive KPI cards with key metrics
-  - Visual charts powered by Chart.js
-    - Requests by Status (Doughnut Chart)
-    - Monthly Dynamics (Stacked Bar Chart with daily/weekly grouping)
-  - Filterable data (status, type, territory, executor, date range)
-  - Export capabilities (Excel and PDF)
-  - Trends table with time-series breakdown
-  - Responsive visualizations for all screen sizes
+   - Interactive KPI cards with key metrics
+   - Visual charts powered by Chart.js
+     - Requests by Status (Doughnut Chart)
+     - Monthly Dynamics (Stacked Bar Chart with daily/weekly grouping)
+   - Filterable data (status, type, territory, executor, date range)
+   - Export capabilities (Excel and PDF)
+   - Trends table with time-series breakdown
+   - Responsive visualizations for all screen sizes
+
+- **Reference Data Management** (Supervisors/Admins only):
+   - Manage nomenclature/reference data for the system
+   - Tabs for different entity types: Request Types, Request Topics, Intake Forms, Social Groups
+   - Create, edit, and deactivate nomenclature items
+   - Real-time table updates
+   - Code and name validation
+   - Duplicate prevention
+   - Active/inactive status toggle
+   - Audit logging for all changes
 
 ### Request Management
 - **View Details**: Modal to view full request information
