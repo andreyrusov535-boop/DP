@@ -28,12 +28,13 @@ async function insertRequest(record) {
       contact_channel,
       status,
       executor,
+      executor_user_id,
       priority,
       due_date,
       control_status,
       created_at,
       updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   const result = await db.run(sql, [
@@ -50,6 +51,7 @@ async function insertRequest(record) {
     record.contact_channel ?? null,
     record.status,
     record.executor ?? null,
+    record.executor_user_id ?? null,
     record.priority,
     record.due_date ?? null,
     record.control_status,

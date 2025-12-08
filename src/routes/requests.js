@@ -25,6 +25,7 @@ const baseValidations = [
   body('address').optional().trim().isLength({ min: 1 }).withMessage('address cannot be empty'),
   body('territory').optional().trim().isLength({ min: 1 }).withMessage('territory cannot be empty'),
   body('contactChannel').optional().trim().isLength({ min: 1 }).withMessage('contactChannel cannot be empty'),
+  body('executorUserId').optional().toInt().isInt({ min: 1 }).withMessage('executorUserId must be numeric'),
   body('dueDate').optional().isISO8601().withMessage('dueDate must be ISO8601 date'),
   body('priority').optional().isIn(PRIORITIES).withMessage('priority is invalid'),
   body('status').optional().isIn(REQUEST_STATUSES).withMessage('status is invalid')

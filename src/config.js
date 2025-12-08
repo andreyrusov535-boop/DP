@@ -36,5 +36,16 @@ module.exports = {
   // Request Constants
   DEADLINE_APPROACHING_THRESHOLD_HOURS: 48,
   REQUEST_STATUSES: ['new', 'in_progress', 'paused', 'completed', 'archived'],
-  PRIORITIES: ['low', 'medium', 'high', 'urgent']
+  PRIORITIES: ['low', 'medium', 'high', 'urgent'],
+
+  // Notification Settings
+  NOTIFICATION_HOURS_BEFORE_DEADLINE: parseInt(process.env.NOTIFICATION_HOURS_BEFORE_DEADLINE || '24', 10),
+  NOTIFICATION_CRON_SCHEDULE: process.env.NOTIFICATION_CRON_SCHEDULE || '0 * * * *',
+
+  // SMTP Settings
+  SMTP_HOST: process.env.SMTP_HOST || 'localhost',
+  SMTP_PORT: parseInt(process.env.SMTP_PORT || '1025', 10),
+  SMTP_USER: process.env.SMTP_USER || '',
+  SMTP_PASS: process.env.SMTP_PASS || '',
+  SMTP_FROM_EMAIL: process.env.SMTP_FROM_EMAIL || 'noreply@requests.local'
 };
