@@ -235,6 +235,12 @@ async function getFileById(fileId) {
   return db.get('SELECT * FROM files WHERE id = ?', fileId);
 }
 
+async function deleteFileById(fileId) {
+  const db = getDb();
+  const sql = 'DELETE FROM files WHERE id = ?';
+  return db.run(sql, fileId);
+}
+
 async function logProceeding(log) {
   const db = getDb();
   const sql = `
@@ -252,6 +258,7 @@ module.exports = {
   insertFiles,
   getFilesByRequestId,
   getFileById,
+  deleteFileById,
   logProceeding,
   SORTABLE_FIELDS
 };

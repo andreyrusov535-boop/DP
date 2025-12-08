@@ -25,9 +25,18 @@ This is a responsive HTML/CSS/Vanilla JavaScript frontend for a Request Manageme
   - Role-based inline actions
 
 - **Create Request**: Form to create new requests
-  - Support for file attachments (JPG, PNG, PDF - max 10MB)
-  - Client-side file validation
+  - Support for multi-file attachments (up to 5 files per request)
+  - Supported formats: JPEG, PNG, GIF, PDF
+  - Size limit: 10MB per file
+  - Client-side file validation with error messages
   - Deadline scheduling
+
+- **File Management**:
+  - View and download attachments with preserved filenames
+  - Delete individual attachments (operators/admins only)
+  - Upload additional files when editing requests
+  - Metadata display: file size, type, upload date
+  - Audit trail for all attachment operations
 
 - **Reports & Analytics** (Supervisors/Admins only):
    - Interactive KPI cards with key metrics

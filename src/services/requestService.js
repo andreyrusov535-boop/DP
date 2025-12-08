@@ -1,4 +1,4 @@
-const { insertRequest, updateRequest, getRequestById, listRequests, insertFiles, getFilesByRequestId, getFileById, logProceeding } = require('../models/requestModel');
+const { insertRequest, updateRequest, getRequestById, listRequests, insertFiles, getFilesByRequestId, getFileById, logProceeding, deleteFileById } = require('../models/requestModel');
 const { findTypeById, findTopicById, findSocialGroupById, findIntakeFormById } = require('../models/nomenclatureModel');
 const { calculateControlStatus } = require('../utils/deadline');
 const { notifyDeadlineStatus, sendEmail, buildNotificationMessage } = require('../utils/notifications');
@@ -7,6 +7,7 @@ const { MAX_ATTACHMENTS, REQUEST_STATUSES, PRIORITIES } = require('../config');
 const { getDb } = require('../db');
 const { logAuditEntry } = require('../utils/audit');
 const { getUserById } = require('../models/userModel');
+const { deleteFileIfExists } = require('../utils/fileStorage');
 
 async function createRequest(payload, files = []) {
   await ensureTypeAndTopic(payload);
@@ -447,6 +448,43 @@ async function removeRequestFromControl({ id, note, user }) {
   return fetchRequestWithFiles(id);
 }
 
+async function deleteAttachment(fileId, user) {
+  const file = await getFileById(fileId);
+  if (!file) {
+    return null;
+  }
+
+  const now = new Date().toISOString();
+
+  await deleteFileIfExists(file.stored_name);
+  await deleteFileById(fileId);
+
+  const auditPayload = {
+    file_id: fileId,
+    original_name: file.original_name,
+    request_id: file.request_id
+  };
+
+  await logAuditEntry({
+    user_id: user.userId,
+    request_id: file.request_id,
+    action: 'delete_attachment',
+    entity_type: 'attachment',
+    payload: auditPayload,
+    created_at: now
+  });
+
+  const proceedingNote = `Attachment deleted: ${file.original_name}`;
+  await logProceeding({
+    request_id: file.request_id,
+    action: 'delete_attachment',
+    details: proceedingNote,
+    created_at: now
+  });
+
+  return true;
+}
+
 module.exports = {
   createRequest,
   updateRequestById,
@@ -454,5 +492,6 @@ module.exports = {
   fetchRequestsList,
   refreshAllControlStatuses,
   getAttachmentById,
+  deleteAttachment,
   removeRequestFromControl
 };

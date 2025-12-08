@@ -282,10 +282,28 @@ When assigning a request to an executor via `executorUserId`:
 
 ## File Handling
 
-- Storage: disk (`/uploads` in production, `/uploads_test` during tests)
-- Validation: `multer` enforces MIME and size, service layer enforces per-request count
-- Metadata persisted in `files` table (original name, stored name, MIME, size, created_at)
-- Download URLs: `/api/files/:fileId/download`
+### Upload (Create & Edit)
+- **Multipart field**: `attachments` (array, up to 5 files)
+- **Formats**: JPEG, PNG, GIF, PDF
+- **Size limit**: 10 MB per file
+- **Storage**: disk (`/uploads` in production, `/uploads_test` during tests)
+- **Validation**: `multer` enforces MIME and size, service layer enforces per-request count
+- **Metadata persisted** in `files` table (original name, stored name, MIME, size, created_at)
+
+### Download
+- **Endpoint**: `GET /api/files/:fileId/download`
+- **Response**: File download with original filename preserved
+- **No authentication required**
+
+### Delete
+- **Endpoint**: `DELETE /api/files/:fileId`
+- **Protected**: Requires `authenticateJWT` + `requireRole('operator', 'supervisor', 'admin')`
+- **Behavior**: 
+  - Deletes file from disk gracefully (no error if already missing)
+  - Removes DB record from `files` table
+  - Writes audit entry with file metadata
+  - Creates proceeding entry with filename
+- **Response**: `{ message: 'File deleted successfully' }` (200) or 404 if file not found
 
 ## Auditing & Proceedings
 
