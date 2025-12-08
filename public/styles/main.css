@@ -1034,5 +1034,130 @@ textarea {
 }
 
 .trends-table tbody tr:last-child td {
+     border-bottom: none;
+}
+
+/* Reference Data Management */
+.nomenclature-tabs {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+    border-bottom: 2px solid var(--border-color);
+    flex-wrap: wrap;
+}
+
+.nomenclature-tab-btn {
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 500;
+    padding: var(--spacing-md) var(--spacing-lg);
+    transition: all var(--transition-fast);
+}
+
+.nomenclature-tab-btn:hover {
+    color: var(--primary-color);
+}
+
+.nomenclature-tab-btn.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+.reference-data-content {
+    display: flex;
+    gap: var(--spacing-xl);
+}
+
+.reference-data-form {
+    flex: 0 0 300px;
+    background-color: var(--surface-color);
+    padding: var(--spacing-lg);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
+    height: fit-content;
+    position: sticky;
+    top: var(--spacing-lg);
+}
+
+.reference-data-form h3 {
+    margin-bottom: var(--spacing-md);
+    font-size: 1rem;
+}
+
+.nomenclature-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.reference-data-list {
+    flex: 1;
+    background-color: var(--surface-color);
+    padding: var(--spacing-lg);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
+}
+
+.reference-data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.reference-data-table th {
+    background-color: var(--background-color);
+    padding: var(--spacing-md);
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.reference-data-table td {
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.reference-data-table tbody tr:hover {
+    background-color: var(--background-color);
+}
+
+.reference-data-table tbody tr:last-child td {
     border-bottom: none;
+}
+
+.reference-data-table .action-buttons {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.status-badge {
+    display: inline-block;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-badge-active {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: var(--success-color);
+}
+
+.status-badge-inactive {
+    background-color: rgba(107, 114, 128, 0.1);
+    color: var(--secondary-color);
+}
+
+.btn-edit {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 0.75rem;
+}
+
+.btn-toggle {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 0.75rem;
 }

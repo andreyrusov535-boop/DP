@@ -9,6 +9,7 @@ const { initDb } = require('./db');
 const { RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_REQUESTS, NODE_ENV } = require('./config');
 const requestsRouter = require('./routes/requests');
 const nomenclatureRouter = require('./routes/nomenclature');
+const nomenclatureAdminRouter = require('./routes/nomenclatureAdmin');
 const filesRouter = require('./routes/files');
 const sampleRouter = require('./routes/sample');
 const reportsRouter = require('./routes/reports');
@@ -35,15 +36,15 @@ app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'"],
-        fontSrc: ["'self'", "data:"],
-        objectSrc: ["'none'"],
-        mediaSrc: ["'self'"],
-        frameSrc: ["'none'"],
+        defaultSrc: ['\'self\''],
+        scriptSrc: ['\'self\'', '\'unsafe-inline\'', 'https://cdn.jsdelivr.net'],
+        styleSrc: ['\'self\'', '\'unsafe-inline\''],
+        imgSrc: ['\'self\'', 'data:', 'https:'],
+        connectSrc: ['\'self\''],
+        fontSrc: ['\'self\'', 'data:'],
+        objectSrc: ['\'none\''],
+        mediaSrc: ['\'self\''],
+        frameSrc: ['\'none\''],
       },
     },
   })
@@ -94,6 +95,7 @@ app.use('/api/users', authRouter);
 
 app.use('/api/requests', requestsRouter);
 app.use('/api/nomenclature', nomenclatureRouter);
+app.use('/api/nomenclature-admin', nomenclatureAdminRouter);
 app.use('/api/files', filesRouter);
 app.use('/api/sample', sampleRouter);
 app.use('/api/reports', reportsRouter);
@@ -113,7 +115,7 @@ app.use((err, _req, res, _next) => {
 
   if (err.message) {
     const lower = err.message.toLowerCase();
-    const clientKeywords = ['invalid', 'unsupported', 'limit', 'reference', 'required', 'cannot', 'active', 'must have'];
+    const clientKeywords = ['invalid', 'unsupported', 'limit', 'reference', 'required', 'cannot', 'active', 'must have', 'not found', 'already exists', 'duplicate'];
     if (clientKeywords.some((keyword) => lower.includes(keyword))) {
       return res.status(400).json({ message: err.message });
     }

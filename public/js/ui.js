@@ -457,6 +457,77 @@ const UI = (() => {
         container.style.display = 'block';
     };
 
+    const renderReferenceDataTable = (items) => {
+        const container = document.getElementById('reference-data-table-body');
+        
+        if (!items || items.length === 0) {
+            container.innerHTML = `
+                <tr>
+                    <td colspan="5" style="text-align: center; color: var(--text-secondary);">
+                        No items found. Create a new item to get started.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        container.innerHTML = items.map(item => {
+            const statusBadge = item.active === 1 
+                ? '<span class="status-badge status-badge-active">Active</span>'
+                : '<span class="status-badge status-badge-inactive">Inactive</span>';
+            
+            return `
+                <tr>
+                    <td>${item.id}</td>
+                    <td>${Utils.escapeHtml(item.code)}</td>
+                    <td>${Utils.escapeHtml(item.name)}</td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn btn-secondary btn-edit btn-sm edit-ref-item-btn" 
+                                data-id="${item.id}" data-code="${Utils.escapeHtml(item.code)}" 
+                                data-name="${Utils.escapeHtml(item.name)}"
+                                aria-label="Edit item ${item.id}">
+                                Edit
+                            </button>
+                            <button class="btn btn-${item.active === 1 ? 'warning' : 'success'} btn-toggle btn-sm toggle-ref-item-btn" 
+                                data-id="${item.id}"
+                                aria-label="Toggle status for item ${item.id}">
+                                ${item.active === 1 ? 'Deactivate' : 'Activate'}
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    };
+
+    const clearReferenceDataForm = () => {
+        const form = document.getElementById('reference-data-create-form');
+        if (form) {
+            form.reset();
+        }
+        clearMessage('reference-data-message');
+    };
+
+    const openReferenceDataEditModal = (id, code, name, entity) => {
+        document.getElementById('ref-edit-id').value = id;
+        document.getElementById('ref-edit-entity').value = entity;
+        document.getElementById('ref-edit-code').value = code;
+        document.getElementById('ref-edit-name').value = name;
+        clearMessage('ref-edit-message');
+        showModal('ref-edit-modal');
+    };
+
+    const closeReferenceDataEditModal = () => {
+        hideModal('ref-edit-modal');
+        const form = document.getElementById('ref-edit-form');
+        if (form) {
+            form.reset();
+        }
+        clearMessage('ref-edit-message');
+    };
+
     return {
         showNotification,
         showMessage,
@@ -478,5 +549,9 @@ const UI = (() => {
         showReportLoadingState,
         renderKpiCards,
         renderTrendsTable,
+        renderReferenceDataTable,
+        clearReferenceDataForm,
+        openReferenceDataEditModal,
+        closeReferenceDataEditModal,
     };
 })();

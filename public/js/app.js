@@ -55,14 +55,17 @@ const App = (() => {
                 UI.setActiveNavItem(itemId);
 
                 if (section === 'requests') {
-                    loadRequests();
-                } else if (section === 'overview') {
-                    loadStats();
-                } else if (section === 'reports') {
-                    loadReportNomenclature();
-                    loadReports();
-                }
-            });
+                     loadRequests();
+                 } else if (section === 'overview') {
+                     loadStats();
+                 } else if (section === 'reports') {
+                     loadReportNomenclature();
+                     loadReports();
+                 } else if (section === 'reference-data') {
+                     setupReferenceDataListeners();
+                     loadReferenceData('request_types');
+                 }
+                });
         });
 
         // Requests section
@@ -167,6 +170,15 @@ const App = (() => {
                     navReports.style.display = 'block';
                 } else {
                     navReports.style.display = 'none';
+                }
+            }
+
+            const navReferenceData = document.getElementById('nav-reference-data');
+            if (navReferenceData) {
+                if (user.role === 'supervisor' || user.role === 'admin') {
+                    navReferenceData.style.display = 'block';
+                } else {
+                    navReferenceData.style.display = 'none';
                 }
             }
         }
@@ -846,6 +858,154 @@ const App = (() => {
             console.error('Failed to export report:', error);
             UI.showNotification(`Failed to export report: ${error.message}`, 'error');
         }
+    };
+
+    let currentNomenclatureEntity = 'request_types';
+
+    const loadReferenceData = async (entity) => {
+        try {
+            const refLoading = document.getElementById('ref-loading');
+            if (refLoading) refLoading.style.display = 'block';
+            
+            currentNomenclatureEntity = entity;
+            const result = await API.nomenclatureAdmin.list(entity, { includeInactive: true, limit: 50, offset: 0 });
+            UI.renderReferenceDataTable(result.items);
+            
+            if (refLoading) refLoading.style.display = 'none';
+        } catch (error) {
+            console.error('Failed to load reference data:', error);
+            UI.showNotification(`Failed to load ${entity}: ${error.message}`, 'error');
+        }
+    };
+
+    const handleCreateReferenceItem = async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const code = form.elements['code'].value.trim();
+        const name = form.elements['name'].value.trim();
+
+        if (!code || !name) {
+            UI.showMessage('reference-data-message', 'Code and Name are required', 'error');
+            return;
+        }
+
+        try {
+            const btn = form.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.textContent = 'Creating...';
+
+            const result = await API.nomenclatureAdmin.create(currentNomenclatureEntity, { code, name });
+            
+            UI.showMessage('reference-data-message', `${currentNomenclatureEntity} created successfully!`, 'success');
+            UI.clearReferenceDataForm();
+            await loadReferenceData(currentNomenclatureEntity);
+            UI.showNotification(`${result.name} created successfully!`, 'success');
+            
+            btn.disabled = false;
+            btn.textContent = 'Create Item';
+        } catch (error) {
+            UI.showMessage('reference-data-message', error.message, 'error');
+            console.error('Failed to create reference item:', error);
+        }
+    };
+
+    const handleEditReferenceItem = async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const id = parseInt(document.getElementById('ref-edit-id').value);
+        const code = form.elements['code'].value.trim();
+        const name = form.elements['name'].value.trim();
+        const entity = document.getElementById('ref-edit-entity').value;
+
+        if (!code || !name) {
+            UI.showMessage('ref-edit-message', 'Code and Name are required', 'error');
+            return;
+        }
+
+        try {
+            const btn = form.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            await API.nomenclatureAdmin.update(entity, id, { code, name });
+            
+            UI.showMessage('ref-edit-message', 'Item updated successfully!', 'success');
+            UI.closeReferenceDataEditModal();
+            await loadReferenceData(entity);
+            UI.showNotification('Item updated successfully!', 'success');
+            
+            btn.disabled = false;
+            btn.textContent = 'Save Changes';
+        } catch (error) {
+            UI.showMessage('ref-edit-message', error.message, 'error');
+            console.error('Failed to update reference item:', error);
+        }
+    };
+
+    const handleToggleReferenceItem = async (e) => {
+        const btn = e.target;
+        const id = parseInt(btn.dataset.id);
+        const currentActive = btn.textContent.includes('Deactivate');
+
+        try {
+            btn.disabled = true;
+            const originalText = btn.textContent;
+            btn.textContent = 'Loading...';
+
+            await API.nomenclatureAdmin.toggleActive(currentNomenclatureEntity, id, !currentActive);
+            
+            await loadReferenceData(currentNomenclatureEntity);
+            const action = currentActive ? 'deactivated' : 'activated';
+            UI.showNotification(`Item ${action} successfully!`, 'success');
+            
+            btn.disabled = false;
+            btn.textContent = originalText;
+        } catch (error) {
+            UI.showNotification(`Failed to toggle item: ${error.message}`, 'error');
+            btn.disabled = false;
+        }
+    };
+
+    const setupReferenceDataListeners = () => {
+        const nomenclatureTabs = document.querySelectorAll('.nomenclature-tab-btn');
+        nomenclatureTabs.forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                const entity = e.target.dataset.nomenclature;
+                
+                document.querySelectorAll('.nomenclature-tab-btn').forEach(t => t.classList.remove('active'));
+                e.target.classList.add('active');
+                
+                loadReferenceData(entity);
+            });
+        });
+
+        const createForm = document.getElementById('reference-data-create-form');
+        if (createForm) {
+            createForm.addEventListener('submit', handleCreateReferenceItem);
+        }
+
+        const editForm = document.getElementById('ref-edit-form');
+        if (editForm) {
+            editForm.addEventListener('submit', handleEditReferenceItem);
+        }
+
+        const refEditModalClose = document.getElementById('ref-edit-modal-close');
+        if (refEditModalClose) {
+            refEditModalClose.addEventListener('click', UI.closeReferenceDataEditModal);
+        }
+
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('edit-ref-item-btn')) {
+                const id = e.target.dataset.id;
+                const code = e.target.dataset.code;
+                const name = e.target.dataset.name;
+                UI.openReferenceDataEditModal(id, code, name, currentNomenclatureEntity);
+            }
+
+            if (e.target.classList.contains('toggle-ref-item-btn')) {
+                handleToggleReferenceItem(e);
+            }
+        });
     };
 
     return {
