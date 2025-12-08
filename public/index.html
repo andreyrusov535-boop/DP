@@ -9,6 +9,9 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
+    <!-- Skip to main content for accessibility -->
+    <a href="#main-content" class="skip-to-main">Skip to main content</a>
+    
     <div id="app">
         <!-- Auth view -->
         <div id="auth-view" class="view auth-view">
@@ -16,45 +19,53 @@
                 <div class="auth-card">
                     <h1>Request Management System</h1>
                     
-                    <div class="auth-tabs">
-                        <button id="login-tab" class="auth-tab-btn active" data-tab="login">Login</button>
-                        <button id="register-tab" class="auth-tab-btn" data-tab="register">Register</button>
+                    <div class="auth-tabs" role="tablist">
+                        <button id="login-tab" class="auth-tab-btn active" data-tab="login" 
+                                role="tab" aria-selected="true" aria-controls="login-panel">Login</button>
+                        <button id="register-tab" class="auth-tab-btn" data-tab="register" 
+                                role="tab" aria-selected="false" aria-controls="register-panel">Register</button>
                     </div>
 
                     <!-- Login Form -->
-                    <form id="login-form" class="auth-form active">
+                    <form id="login-form" class="auth-form active" role="tabpanel" id="login-panel" aria-labelledby="login-tab">
                         <div class="form-group">
-                            <label for="login-email">Email</label>
-                            <input type="email" id="login-email" name="email" required aria-label="Email address" />
+                            <label for="login-email" class="required-field">Email</label>
+                            <input type="email" id="login-email" name="email" required 
+                                   aria-label="Email address" autocomplete="email" />
                         </div>
                         <div class="form-group">
-                            <label for="login-password">Password</label>
-                            <input type="password" id="login-password" name="password" required aria-label="Password" />
+                            <label for="login-password" class="required-field">Password</label>
+                            <input type="password" id="login-password" name="password" required 
+                                   aria-label="Password" autocomplete="current-password" />
                         </div>
                         <button type="submit" class="btn btn-primary" aria-label="Login to account">Login</button>
-                        <div id="login-message" class="message"></div>
+                        <div id="login-message" class="message" role="alert" aria-live="polite"></div>
                     </form>
 
                     <!-- Register Form -->
-                    <form id="register-form" class="auth-form">
+                    <form id="register-form" class="auth-form" role="tabpanel" id="register-panel" aria-labelledby="register-tab" hidden>
                         <div class="form-group">
-                            <label for="register-name">Name</label>
-                            <input type="text" id="register-name" name="name" required aria-label="Full name" />
+                            <label for="register-name" class="required-field">Name</label>
+                            <input type="text" id="register-name" name="name" required 
+                                   aria-label="Full name" autocomplete="name" />
                         </div>
                         <div class="form-group">
-                            <label for="register-email">Email</label>
-                            <input type="email" id="register-email" name="email" required aria-label="Email address" />
+                            <label for="register-email" class="required-field">Email</label>
+                            <input type="email" id="register-email" name="email" required 
+                                   aria-label="Email address" autocomplete="email" />
                         </div>
                         <div class="form-group">
-                            <label for="register-password">Password</label>
-                            <input type="password" id="register-password" name="password" required aria-label="Password" />
+                            <label for="register-password" class="required-field">Password</label>
+                            <input type="password" id="register-password" name="password" required 
+                                   aria-label="Password" autocomplete="new-password" />
                         </div>
                         <div class="form-group">
-                            <label for="register-password-confirm">Confirm Password</label>
-                            <input type="password" id="register-password-confirm" name="password_confirm" required aria-label="Confirm password" />
+                            <label for="register-password-confirm" class="required-field">Confirm Password</label>
+                            <input type="password" id="register-password-confirm" name="password_confirm" required 
+                                   aria-label="Confirm password" autocomplete="new-password" />
                         </div>
                         <div class="form-group">
-                            <label for="register-role">Role</label>
+                            <label for="register-role" class="required-field">Role</label>
                             <select id="register-role" name="role" required aria-label="User role">
                                 <option value="">-- Select a role --</option>
                                 <option value="citizen">Citizen</option>
@@ -63,11 +74,14 @@
                             </select>
                         </div>
                         <button type="submit" class="btn btn-primary" aria-label="Create new account">Register</button>
-                        <div id="register-message" class="message"></div>
+                        <div id="register-message" class="message" role="alert" aria-live="polite"></div>
                     </form>
                 </div>
             </div>
         </div>
+
+        <!-- Notification container for live announcements -->
+        <div id="notification-container" class="notification-container" aria-live="polite" aria-atomic="false"></div>
 
         <!-- Dashboard view -->
         <div id="dashboard-view" class="view dashboard-view" style="display: none;">
@@ -85,7 +99,7 @@
 
             <div class="dashboard-container">
                 <!-- Sidebar -->
-                <aside class="dashboard-sidebar">
+                <aside class="dashboard-sidebar" role="navigation" aria-label="Main navigation">
                     <nav class="sidebar-nav">
                         <button id="nav-dashboard" class="nav-item active" data-section="overview" aria-label="Dashboard overview">
                             Dashboard
@@ -106,17 +120,17 @@
                 </aside>
 
                 <!-- Main Content -->
-                <main class="dashboard-main">
+                <main class="dashboard-main" id="main-content">
                     <!-- Overview Section -->
-                    <section id="overview-section" class="section active">
-                        <h2>Dashboard Overview</h2>
+                    <section id="overview-section" class="section active" aria-labelledby="overview-heading">
+                        <h2 id="overview-heading">Dashboard Overview</h2>
                         <div class="reporting-widgets">
                             <div class="widget">
                                 <h3>Requests by Status</h3>
-                                <div id="status-counts" class="widget-content">
+                                <div id="status-counts" class="widget-content" role="region" aria-label="Request status counts">
                                     <div class="stat-item">
                                         <span class="stat-label">New</span>
-                                        <span class="stat-value" id="count-new">0</span>
+                                        <span class="stat-value" id="count-new" aria-label="New requests count">0</span>
                                     </div>
                                     <div class="stat-item">
                                         <span class="stat-label">In Progress</span>
