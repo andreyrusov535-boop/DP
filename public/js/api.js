@@ -184,6 +184,13 @@ const API = (() => {
                 body: { status },
             });
         },
+
+        removeFromControl: (id, payload = {}) => {
+            return request(`/requests/${id}/remove-from-control`, {
+                method: 'PATCH',
+                body: payload,
+            });
+        },
     };
 
     // Dashboard stats API

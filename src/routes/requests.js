@@ -2,11 +2,13 @@ const express = require('express');
 const { body, param } = require('express-validator');
 const validateRequest = require('../middleware/validateRequest');
 const { optionalAttachments } = require('../middleware/upload');
+const { authenticateJWT, requireRole } = require('../middleware/auth');
 const {
   createRequest,
   fetchRequestsList,
   fetchRequestWithFiles,
-  updateRequestById
+  updateRequestById,
+  removeRequestFromControl
 } = require('../services/requestService');
 const { REQUEST_STATUSES, PRIORITIES } = require('../config');
 
@@ -96,6 +98,29 @@ router.patch(
         return res.status(404).json({ message: 'Request not found' });
       }
       res.json(updated);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.patch(
+  '/:id/remove-from-control',
+  authenticateJWT,
+  requireRole('operator', 'supervisor', 'admin'),
+  [
+    param('id').isInt({ min: 1 }).withMessage('id must be numeric'),
+    body('note').optional().trim().isLength({ max: 1000 }).withMessage('note must not exceed 1000 characters')
+  ],
+  validateRequest,
+  async (req, res, next) => {
+    try {
+      const result = await removeRequestFromControl({
+        id: Number(req.params.id),
+        note: req.body.note,
+        user: req.user
+      });
+      res.json(result);
     } catch (error) {
       next(error);
     }

@@ -118,6 +118,44 @@ function buildNotificationMessage(requestId, request, notificationType, baseUrl 
     };
   }
 
+  if (notificationType === 'removed_from_control') {
+    const removedBy = request.removedBy || request.removed_by || 'System Administrator';
+    const reason = request.reason || request.note || 'No specific reason provided';
+    
+    return {
+      subject: `Request #${requestId}: Removed from Control`,
+      html: `
+        <h2 style="color: #f57c00;">Request Removed from Control</h2>
+        <p>Your request has been removed from our control system.</p>
+        <table style="border-collapse: collapse; width: 100%; max-width: 600px;">
+          <tr>
+            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Request ID:</strong></td>
+            <td style="padding: 8px; border: 1px solid #ddd;">#${requestId}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Citizen Name:</strong></td>
+            <td style="padding: 8px; border: 1px solid #ddd;">${citizenName}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Description:</strong></td>
+            <td style="padding: 8px; border: 1px solid #ddd;">${request.description || request.Description || 'N/A'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Removed By:</strong></td>
+            <td style="padding: 8px; border: 1px solid #ddd;">${removedBy}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Reason:</strong></td>
+            <td style="padding: 8px; border: 1px solid #ddd;">${reason}</td>
+          </tr>
+        </table>
+        <p style="color: #666; margin-top: 15px;">This request will no longer be actively monitored by our system. If you believe this is an error or need further assistance, please contact our support team.</p>
+        <p><a href="${requestLink}" style="display: inline-block; padding: 10px 20px; background-color: #f57c00; color: white; text-decoration: none; border-radius: 4px; margin-top: 15px;">View Request Details</a></p>
+        <p style="color: #666; font-size: 12px; margin-top: 20px;">This is an automated notification. Please do not reply to this email.</p>
+      `
+    };
+  }
+
   return {
     subject: `Request #${requestId}: Notification`,
     html: `<p>Request notification for #${requestId}.</p><p><a href="${requestLink}">View Request</a></p>`
