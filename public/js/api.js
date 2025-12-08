@@ -114,8 +114,8 @@ const API = (() => {
 
         get: (id) => request(`/requests/${id}`),
 
-        create: (data, file = null) => {
-            if (file) {
+        create: (data, files = null) => {
+            if (files && files.length > 0) {
                 const formData = new FormData();
                 formData.append('citizenFio', data.citizenFio || '');
                 formData.append('description', data.description);
@@ -143,7 +143,9 @@ const API = (() => {
                 if (data.contactChannel) {
                     formData.append('contactChannel', data.contactChannel);
                 }
-                formData.append('attachments', file);
+                for (const file of files) {
+                    formData.append('attachments', file);
+                }
 
                 return request('/requests', {
                     method: 'POST',
@@ -158,7 +160,27 @@ const API = (() => {
             });
         },
 
-        update: (id, data) => {
+        update: (id, data, files = null) => {
+            if (files && files.length > 0) {
+                const formData = new FormData();
+                
+                for (const [key, value] of Object.entries(data)) {
+                    if (value !== null && value !== undefined) {
+                        formData.append(key, value);
+                    }
+                }
+                
+                for (const file of files) {
+                    formData.append('attachments', file);
+                }
+
+                return request(`/requests/${id}`, {
+                    method: 'PATCH',
+                    body: formData,
+                    isFormData: true,
+                });
+            }
+
             return request(`/requests/${id}`, {
                 method: 'PATCH',
                 body: data,
@@ -196,6 +218,15 @@ const API = (() => {
     // Dashboard stats API
     const stats = {
         getOverview: () => request('/stats/overview'),
+    };
+
+    // Files API
+    const files = {
+        delete: (id) => {
+            return request(`/files/${id}`, {
+                method: 'DELETE',
+            });
+        },
     };
 
     // Nomenclature Admin API
@@ -332,6 +363,7 @@ const API = (() => {
     return {
         request,
         requests,
+        files,
         stats,
         nomenclatureAdmin,
         reports,

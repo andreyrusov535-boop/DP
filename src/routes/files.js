@@ -1,9 +1,10 @@
 const express = require('express');
 const fs = require('fs');
 const { param } = require('express-validator');
-const { getAttachmentById } = require('../services/requestService');
+const { getAttachmentById, deleteAttachment } = require('../services/requestService');
 const validateRequest = require('../middleware/validateRequest');
 const { buildStoredFilePath } = require('../utils/fileStorage');
+const { authenticateJWT, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -26,6 +27,25 @@ router.get(
       }
 
       return res.download(filePath, attachment.original_name);
+    } catch (error) {
+      return next(error);
+    }
+  }
+);
+
+router.delete(
+  '/:id',
+  authenticateJWT,
+  requireRole('operator', 'supervisor', 'admin'),
+  param('id').isInt({ min: 1 }).withMessage('File id must be numeric'),
+  validateRequest,
+  async (req, res, next) => {
+    try {
+      const deleted = await deleteAttachment(Number(req.params.id), req.user);
+      if (!deleted) {
+        return res.status(404).json({ message: 'File not found' });
+      }
+      return res.json({ message: 'File deleted successfully' });
     } catch (error) {
       return next(error);
     }
