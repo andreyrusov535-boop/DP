@@ -6,6 +6,7 @@ const { clean } = require('../utils/sanitize');
 const { MAX_ATTACHMENTS, REQUEST_STATUSES, PRIORITIES } = require('../config');
 const { getDb } = require('../db');
 const { logAuditEntry } = require('../utils/audit');
+const { getUserById } = require('../models/userModel');
 
 async function createRequest(payload, files = []) {
   await ensureTypeAndTopic(payload);
@@ -186,6 +187,23 @@ async function ensureTypeAndTopic(payload) {
       throw new Error('Invalid intake form reference');
     }
   }
+  if (payload.executorUserId !== undefined && payload.executorUserId !== null) {
+    const executorUserId = Number(payload.executorUserId);
+    if (Number.isNaN(executorUserId)) {
+      throw new Error('Invalid executor user reference');
+    }
+    const user = await getUserById(executorUserId);
+    if (!user) {
+      throw new Error('Invalid executor user reference');
+    }
+    if (user.status !== 'active') {
+      throw new Error('Executor user must have active status');
+    }
+    const validExecutorRoles = ['operator', 'executor', 'supervisor', 'admin'];
+    if (!validExecutorRoles.includes(user.role)) {
+      throw new Error('Executor user must have executor, operator, supervisor, or admin role');
+    }
+  }
 }
 
 function validateStatusAndPriority(payload) {
@@ -214,6 +232,7 @@ function sanitizePayload(payload, isUpdate = false) {
   if (has('contactChannel')) sanitized.contact_channel = clean(payload.contactChannel);
   if (has('status')) sanitized.status = payload.status;
   if (has('executor')) sanitized.executor = clean(payload.executor);
+  if (has('executorUserId')) sanitized.executor_user_id = payload.executorUserId ? Number(payload.executorUserId) : null;
   if (has('priority')) sanitized.priority = payload.priority;
   if (has('dueDate')) sanitized.due_date = sanitizeDate(payload.dueDate);
   if (!isUpdate) {
@@ -313,6 +332,7 @@ function mapRequest(row, files) {
     description: row.description,
     status: row.status,
     executor: row.executor,
+    executorUserId: row.executor_user_id,
     priority: row.priority,
     dueDate: row.due_date,
     controlStatus: row.control_status,

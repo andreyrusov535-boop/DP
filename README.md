@@ -161,6 +161,11 @@ npm run lint
 - **Data querying**: Filtering, search, pagination, and sorting backed by DB indexes for performant queries
 - **Deadline management**: Automatic deadline status calculation on read/write with scheduled cron refresh (Node-cron) and notification hooks for approaching/overdue deadlines
 - **Audit logging**: Comprehensive audit trails in `audit_log` and `request_proceedings` tables for every mutation
+- **Automated notifications**: Scheduled job sends reminders 24h before SLA and escalates overdue requests to supervisors/admins
+  - Executor assignment via `executorUserId` FK with role and status validation
+  - Email notifications with request details and direct links (mock SMTP in test/dev mode)
+  - Duplicate prevention via `deadline_notifications` tracking table
+  - Configurable cron schedule and notification window
 - **Reference data**: Nomenclature endpoints for request types/topics used by the frontend filters
 - **Reporting & Analytics**: Aggregated overview reports, time-series dynamics, and Excel/PDF exports with filtering support (supervisor/admin role required)
 - **Compression**: Response compression with gzip for bandwidth optimization
@@ -194,6 +199,17 @@ RATE_LIMIT_MAX_REQUESTS=100
 MAX_FILE_SIZE=10485760
 MAX_ATTACHMENTS=5
 UPLOAD_DIR=./uploads
+
+# Notification Settings
+NOTIFICATION_HOURS_BEFORE_DEADLINE=24
+NOTIFICATION_CRON_SCHEDULE=0 * * * *
+
+# SMTP Configuration (for production)
+SMTP_HOST=localhost
+SMTP_PORT=1025
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM_EMAIL=noreply@requests.local
 ```
 
 ### Non-Functional Requirements

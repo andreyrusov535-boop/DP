@@ -14,6 +14,7 @@ const sampleRouter = require('./routes/sample');
 const reportsRouter = require('./routes/reports');
 const { ensureUploadDir } = require('./utils/fileStorage');
 const { scheduleDeadlineRefresh, runDeadlineRefreshOnce } = require('./jobs/deadlineJob');
+const { scheduleNotificationJob, runNotificationJobOnce } = require('./jobs/notificationJob');
 
 const app = express();
 
@@ -112,7 +113,7 @@ app.use((err, _req, res, _next) => {
 
   if (err.message) {
     const lower = err.message.toLowerCase();
-    const clientKeywords = ['invalid', 'unsupported', 'limit', 'reference', 'required', 'cannot'];
+    const clientKeywords = ['invalid', 'unsupported', 'limit', 'reference', 'required', 'cannot', 'active', 'must have'];
     if (clientKeywords.some((keyword) => lower.includes(keyword))) {
       return res.status(400).json({ message: err.message });
     }
@@ -128,6 +129,7 @@ async function bootstrap() {
   await runDeadlineRefreshOnce();
   if (process.env.NODE_ENV !== 'test') {
     scheduleDeadlineRefresh();
+    scheduleNotificationJob();
   }
 }
 

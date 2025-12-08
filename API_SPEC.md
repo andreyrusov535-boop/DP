@@ -21,7 +21,8 @@ The Request Workflow API is a lightweight Express + SQLite service that powers t
 | `requestTopicId` | integer (optional) | Foreign key to nomenclature `request_topics` |
 | `description` | string (required) | Request body, sanitized with `sanitize-html` |
 | `status` | enum | `new`, `in_progress`, `paused`, `completed`, `archived` |
-| `executor` | string (optional) | Assigned operator |
+| `executor` | string (optional) | Assigned operator (display name) |
+| `executorUserId` | integer (optional) | Foreign key to `users` table; must have executor/operator/supervisor/admin role with active status |
 | `priority` | enum | `low`, `medium`, `high`, `urgent` |
 | `dueDate` | ISO 8601 string (optional) | Deadline |
 | `controlStatus` | enum | `no`, `normal`, `approaching`, `overdue` (computed) |
@@ -200,6 +201,38 @@ All report endpoints log audit entries for traceability.
 - Recalculation happens on every read/write and via a scheduled cron job (`0 3 * * *`) in production.
 - Notifications hook logs approaching/overdue events (`[deadline-notification]` console output).
 
+## Automated Notifications & Executor Assignment
+
+### Executor Assignment
+When assigning a request to an executor via `executorUserId`:
+- The user must exist and have role: `operator`, `executor`, `supervisor`, or `admin`
+- The user must have status: `active`
+- Both `executor` (text display name) and `executorUserId` (FK) are stored for flexibility
+- Can be set during POST `/api/requests` or PATCH `/api/requests/:id`
+
+### Notification Scheduling
+- **Job**: `src/jobs/notificationJob.js` scheduled via `node-cron` with pattern from `NOTIFICATION_CRON_SCHEDULE` (default: hourly at `0 * * * *`)
+- **Due Soon Notifications**: Fired 24 hours before deadline (configurable via `NOTIFICATION_HOURS_BEFORE_DEADLINE`)
+  - Sent to executor email if `executorUserId` is set
+  - Only for requests with status NOT in `['completed', 'archived']`
+  - Prevented from duplicate sends via `deadline_notifications` table tracking
+- **Overdue Notifications**: Fired when deadline passes
+  - Sent to all `active` users with roles: `supervisor` or `admin`
+  - Only once per request via duplicate prevention
+- **Email Delivery**: Via `nodemailer`
+  - Production: Uses configured SMTP server (see `SMTP_*` env vars)
+  - Development/Test: Logs to console (`[email-notification]` prefix) for inspection
+- **Configuration**: See `NOTIFICATION_*` and `SMTP_*` environment variables in `.env.example`
+
+### Preventing Duplicate Notifications
+- `deadline_notifications` table tracks all sent notifications with:
+  - `request_id`: which request was notified
+  - `notification_type`: `'due_soon'` or `'overdue'`
+  - `target_user_id`: who was notified
+  - `created_at`: when the notification was sent
+- Before sending, the service checks if a notification already exists for that (request_id, notification_type) pair
+- This ensures idempotent scheduling even if the cron job reruns
+
 ## File Handling
 
 - Storage: disk (`/uploads` in production, `/uploads_test` during tests)
@@ -209,7 +242,7 @@ All report endpoints log audit entries for traceability.
 
 ## Auditing & Proceedings
 
-Every `POST`/`PATCH` writes serialized payload details to both `audit_log` (`payload` column) and `request_proceedings` (`notes` column). These tables are ready for downstream analytics or notification pipelines.
+Every `POST`/`PATCH` writes serialized payload details to both `audit_log` (`payload` column) and `request_proceedings` (`notes` column). These tables are ready for downstream analytics or notification pipelines. Executor assignments are validated and logged.
 
 ## Testing & Verification
 
