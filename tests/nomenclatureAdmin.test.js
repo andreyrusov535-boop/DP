@@ -655,34 +655,31 @@ async function resetDatabase() {
   await db.run('DELETE FROM request_search');
   await db.run('DELETE FROM requests');
   await db.run('DELETE FROM users');
-  await db.run('DELETE FROM request_types');
-  await db.run('DELETE FROM request_topics');
-  await db.run('DELETE FROM intake_forms');
-  await db.run('DELETE FROM social_groups');
+  await db.run('DELETE FROM nomenclature');
 
   // Re-seed the nomenclature tables
   await db.run(`
-    INSERT INTO request_types (code, name, active) VALUES 
-    ('RT001', 'Type 1', 1),
-    ('RT002', 'Type 2', 1)
+    INSERT INTO nomenclature (type, code, name, is_active) VALUES 
+    ('request_type', 'RT001', 'Type 1', 1),
+    ('request_type', 'RT002', 'Type 2', 1)
   `);
 
   await db.run(`
-    INSERT INTO request_topics (code, name, active) VALUES 
-    ('TP001', 'Topic 1', 1),
-    ('TP002', 'Topic 2', 1)
+    INSERT INTO nomenclature (type, code, name, is_active) VALUES 
+    ('topic', 'TP001', 'Topic 1', 1),
+    ('topic', 'TP002', 'Topic 2', 1)
   `);
 
   await db.run(`
-    INSERT INTO intake_forms (code, name, active) VALUES 
-    ('IF001', 'Form 1', 1),
-    ('IF002', 'Form 2', 1)
+    INSERT INTO nomenclature (type, code, name, is_active) VALUES 
+    ('intake_form', 'IF001', 'Form 1', 1),
+    ('intake_form', 'IF002', 'Form 2', 1)
   `);
 
   await db.run(`
-    INSERT INTO social_groups (code, name, active) VALUES 
-    ('SG001', 'Group 1', 1),
-    ('SG002', 'Group 2', 1)
+    INSERT INTO nomenclature (type, code, name, is_active) VALUES 
+    ('social_group', 'SG001', 'Group 1', 1),
+    ('social_group', 'SG002', 'Group 2', 1)
   `);
 }
 
