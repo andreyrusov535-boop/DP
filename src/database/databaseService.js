@@ -2,6 +2,8 @@ const { open } = require('sqlite');
 const sqlite3 = require('sqlite3');
 const config = require('../config');
 const MigrationRunner = require('./migrationRunner');
+const fs = require('fs');
+const path = require('path');
 
 class DatabaseService {
   constructor() {
@@ -18,6 +20,11 @@ class DatabaseService {
     try {
       console.log('Initializing database connection...');
       
+      const dbDir = path.dirname(config.DB_PATH);
+      if (!fs.existsSync(dbDir)) {
+        fs.mkdirSync(dbDir, { recursive: true });
+      }
+
       this.db = await open({
         filename: config.DB_PATH,
         driver: sqlite3.Database
@@ -88,6 +95,10 @@ class DatabaseService {
     if (this.preparedStatements.has(name)) {
       return this.preparedStatements.get(name);
     }
+    
+    if (!sql) {
+      throw new Error(`SQL required for prepared statement ${name}`);
+    }
 
     const db = this.getDatabase();
     const statement = await db.prepare(sql);
@@ -101,30 +112,48 @@ class DatabaseService {
    * @param {Array} params - Parameters for the statement
    * @returns {Promise<Object>} Query result
    */
-  async executeStatement(name, params = []) {
-    const statement = await this.getPreparedStatement(name);
+  async executeStatement(name, args = []) {
+    let sql;
+    let params = args;
+    if (args.length > 0 && typeof args[0] === 'string') {
+      sql = args[0];
+      params = args.slice(1);
+    }
+    const statement = await this.getPreparedStatement(name, sql);
     return statement.run(params);
   }
 
   /**
    * Execute a prepared statement and return the first row
    * @param {string} name - Statement name
-   * @param {Array} params - Parameters for the statement
+   * @param {Array} params - Parameters for the statement (first element can be SQL)
    * @returns {Promise<Object|null>} First row or null
    */
-  async getOne(name, params = []) {
-    const statement = await this.getPreparedStatement(name);
+  async getOne(name, args = []) {
+    let sql;
+    let params = args;
+    if (args.length > 0 && typeof args[0] === 'string') {
+      sql = args[0];
+      params = args.slice(1);
+    }
+    const statement = await this.getPreparedStatement(name, sql);
     return statement.get(params);
   }
 
   /**
    * Execute a prepared statement and return all rows
    * @param {string} name - Statement name
-   * @param {Array} params - Parameters for the statement
+   * @param {Array} params - Parameters for the statement (first element can be SQL)
    * @returns {Promise<Array>} All rows
    */
-  async getAll(name, params = []) {
-    const statement = await this.getPreparedStatement(name);
+  async getAll(name, args = []) {
+    let sql;
+    let params = args;
+    if (args.length > 0 && typeof args[0] === 'string') {
+      sql = args[0];
+      params = args.slice(1);
+    }
+    const statement = await this.getPreparedStatement(name, sql);
     return statement.all(params);
   }
 

@@ -22,8 +22,8 @@ async function up(db) {
       position TEXT,
       is_active INTEGER DEFAULT 1, -- alias for status=active
       
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
   `);
 
@@ -97,8 +97,8 @@ async function up(db) {
       source TEXT DEFAULT 'manual', -- Feature
       created_by INTEGER, -- Feature
       
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       
       FOREIGN KEY (request_type_id) REFERENCES nomenclature(id) ON DELETE SET NULL,
       FOREIGN KEY (request_topic_id) REFERENCES nomenclature(id) ON DELETE SET NULL,
@@ -124,7 +124,7 @@ async function up(db) {
       description TEXT, -- Feature
       category TEXT DEFAULT 'attachment', -- Feature
       uploaded_by INTEGER, -- Feature
-      created_at TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (request_id) REFERENCES requests(id) ON DELETE CASCADE,
       FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE SET NULL
     );
@@ -144,7 +144,7 @@ async function up(db) {
       description TEXT, -- Feature
       ip_address TEXT, -- Feature
       user_agent TEXT, -- Feature
-      created_at TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (request_id) REFERENCES requests(id) ON DELETE SET NULL,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
     );
@@ -161,7 +161,7 @@ async function up(db) {
       internal_note INTEGER DEFAULT 0, -- Feature
       visibility TEXT DEFAULT 'internal', -- Feature
       metadata TEXT, -- Feature
-      created_at TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (request_id) REFERENCES requests(id) ON DELETE CASCADE,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
     );
@@ -174,7 +174,7 @@ async function up(db) {
       request_id INTEGER NOT NULL,
       notification_type TEXT NOT NULL,
       target_user_id INTEGER,
-      created_at TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (request_id) REFERENCES requests(id) ON DELETE CASCADE,
       FOREIGN KEY (target_user_id) REFERENCES users(id) ON DELETE SET NULL
     );

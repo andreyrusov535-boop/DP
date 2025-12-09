@@ -4,15 +4,6 @@
  */
 
 async function up(db) {
-  // Seed priorities
-  await db.exec(`
-    INSERT INTO nomenclature (type, code, name, description, sort_order) VALUES
-    ('priority', 'critical', 'Critical', 'Requires immediate attention', 1),
-    ('priority', 'high', 'High', 'Urgent attention required', 2),
-    ('priority', 'medium', 'Medium', 'Normal priority', 3),
-    ('priority', 'low', 'Low', 'Can be addressed later', 4);
-  `);
-
   // Seed request types
   await db.exec(`
     INSERT INTO nomenclature (type, code, name, description, sort_order, metadata) VALUES
@@ -97,6 +88,15 @@ async function up(db) {
     ('social_group', 'elderly', 'Elderly Residents', 'Senior citizens', 2),
     ('social_group', 'disabled', 'Persons with Disabilities', 'Residents with disabilities', 3),
     ('social_group', 'low_income', 'Low-Income Residents', 'Residents receiving social assistance', 4);
+  `);
+
+  // Seed priorities (Moved to end)
+  await db.exec(`
+    INSERT INTO nomenclature (type, code, name, description, sort_order) VALUES
+    ('priority', 'critical', 'Critical', 'Requires immediate attention', 1),
+    ('priority', 'high', 'High', 'Urgent attention required', 2),
+    ('priority', 'medium', 'Medium', 'Normal priority', 3),
+    ('priority', 'low', 'Low', 'Can be addressed later', 4);
   `);
 
   // Seed executors (departments/roles)
