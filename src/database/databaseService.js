@@ -77,7 +77,7 @@ class DatabaseService {
     return this.migrationRunner.migrate();
   }
 
-  async rollback(steps = 1) {
+  async rollbackMigrations(steps = 1) {
     return this.migrationRunner.rollback(steps);
   }
 

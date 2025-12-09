@@ -5,6 +5,28 @@ All notable changes to the Request Management System are documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2024-12-09
+
+### Dependency Security Updates
+
+#### Fixed
+- **Security Vulnerabilities**: Resolved 17 npm vulnerabilities (3 low, 1 moderate, 13 high)
+- **jsonwebtoken**: Updated from 8.5.1 to 9.0.3 to fix signature bypass and insecure key handling vulnerabilities
+- **nodemailer**: Updated from 6.9.0 to 7.0.11 to fix email routing vulnerability and DoS in addressparser
+- **multer**: Updated from 1.4.2 to 2.0.2 to fix crash in HeaderParser
+- **puppeteer**: Updated from 19.0.0 to 24.32.1 to fix symlink validation bypass, path traversal, and DoS vulnerabilities
+- **Express ecosystem**: Updated path-to-regexp, send, serve-static, and cookie to fix ReDoS, template injection XSS, and DoS attacks
+
+#### Changed
+- **Code Quality**: Fixed ESLint warnings and removed unused imports
+- **DatabaseService**: Renamed `rollback()` method to `rollbackMigrations()` to resolve duplicate class member error
+
+#### Verified
+- **Dependencies**: All dependency upgrades tested and verified to work correctly
+- **Functionality**: JWT token generation/verification, email sending, file uploads all working as expected
+- **Security**: npm audit shows 0 vulnerabilities after updates
+- **Performance**: Performance benchmarks still meet SLA requirements
+
 ## [1.0.0] - 2024-01-XX
 
 ### Phase 3: Documentation, OpenAPI, E2E Testing & UAT
