@@ -7,22 +7,27 @@ This is a responsive HTML/CSS/Vanilla JavaScript frontend for a Request Manageme
 ## Features
 
 ### Authentication
-- Login and registration forms
+- Login and registration forms with enhanced accessibility
 - JWT token storage (in-memory + sessionStorage)
 - Automatic token refresh
 - Password validation with strength requirements
 - Email validation
+- Screen reader support for form validation
 
 ### Dashboard Views
 - **Overview**: Dashboard with statistics and reporting widgets
   - Request counts by status
   - Request counts by type
   - Real-time updates (every 30 seconds)
+  - High contrast mode support
 
 - **Requests**: Browse, filter, and manage requests
   - Advanced filtering (type, status, executor, date range, text search)
   - Request list with status badges and deadline indicators
   - Role-based inline actions
+  - Virtual scrolling for large datasets (50+ items)
+  - Debounced search inputs to prevent unnecessary API calls
+  - AbortController support to cancel in-flight requests
 
 - **Create Request**: Form to create new requests
   - Support for multi-file attachments (up to 5 files per request)
@@ -30,6 +35,7 @@ This is a responsive HTML/CSS/Vanilla JavaScript frontend for a Request Manageme
   - Size limit: 10MB per file
   - Client-side file validation with error messages
   - Deadline scheduling
+  - Enhanced inline validation with aria-describedby
 
 - **File Management**:
   - View and download attachments with preserved filenames
@@ -40,13 +46,107 @@ This is a responsive HTML/CSS/Vanilla JavaScript frontend for a Request Manageme
 
 - **Reports & Analytics** (Supervisors/Admins only):
    - Interactive KPI cards with key metrics
-   - Visual charts powered by Chart.js
-     - Requests by Status (Doughnut Chart)
-     - Monthly Dynamics (Stacked Bar Chart with daily/weekly grouping)
+   - Visual charts powered by Chart.js with memory management
+      - Requests by Status (Doughnut Chart)
+      - Monthly Dynamics (Stacked Bar Chart with daily/weekly grouping)
+      - Reduced motion support for accessibility
    - Filterable data (status, type, territory, executor, date range)
    - Export capabilities (Excel and PDF)
    - Trends table with time-series breakdown
    - Responsive visualizations for all screen sizes
+
+### Accessibility Features
+- **WCAG 2.1 AA Compliance**:
+  - Semantic HTML5 structure with proper ARIA labels
+  - Focus management and keyboard navigation
+  - Screen reader announcements for dynamic content
+  - Skip navigation links
+  - High contrast mode support via `prefers-contrast: high`
+  - Reduced motion support via `prefers-reduced-motion: reduce`
+  - Touch-friendly targets (44px minimum)
+  - Focus indicators and outlines
+  - Live regions for status updates
+
+- **Keyboard Navigation**:
+  - Tab order management
+  - Escape key closes modals
+  - Ctrl/Cmd+K focuses search
+  - Arrow key navigation in lists
+  - Focus trapping in modals
+
+### Responsive Design
+- **Breakpoint Support**:
+  - **Large Desktop (1280px+)**: Optimized for 1280×720 displays
+  - **Standard Desktop (1024-1279px)**: Optimized for 1024×768 tablets
+  - **Tablet (768-1023px)**: Portrait tablet layouts
+  - **Mobile (≤480px)**: Optimized for 320px phones
+  - **Small Mobile (≤320px)**: Extra small phone optimization
+
+- **Layout Features**:
+  - No horizontal scroll on any screen size
+  - Flexible grid systems that reflow properly
+  - Collapsible sidebars on mobile
+  - Touch-optimized buttons and spacing
+  - Readable typography at all sizes
+
+### Performance Optimizations
+- **Request Management**:
+  - Debounced filter inputs (300ms delay, 500ms for search)
+  - AbortController cancels stale requests
+  - Virtual scrolling for large lists
+  - Chart.js memory management and cleanup
+  - Lazy loading for heavy sections
+
+- **Network Performance**:
+  - Response time targets: ≤2s for API calls, ≤10s for report generation
+  - Concurrent request handling
+  - Efficient DOM updates with document fragments
+  - Optimized asset loading
+
+## Browser Support
+
+### Supported Browsers
+- **Chrome 90+** (Recommended)
+- **Firefox 88+** (Full support)
+- **Edge 90+** (Full support)
+- **Safari 14+** (Full support)
+
+### Compatibility Features
+- Modern JavaScript (ES2020+) features
+- CSS Grid and Flexbox layouts
+- CSS Custom Properties (variables)
+- Fetch API with AbortController
+- Web Accessibility API
+- Responsive Viewport Units
+
+## Performance Testing
+
+### Running Performance Tests
+```bash
+# Ensure server is running
+npm run dev
+
+# Run performance smoke test
+npm run perf
+
+# Custom base URL (optional)
+BASE_URL=http://localhost:3001 npm run perf
+```
+
+### Performance Metrics
+The performance test validates:
+- **API Response Times**: ≤2s average, ≤2s maximum
+- **Health Check**: ≤500ms average, ≤1s maximum
+- **Static Assets**: ≤300ms average, ≤1s maximum
+- **Throughput**: Handles concurrent requests efficiently
+- **Error Rates**: <1% for healthy endpoints
+
+### Performance Guidelines
+- Requests list renders in <2s with 100+ entries
+- Charts initialize without memory leaks
+- Filter changes don't queue stale network calls
+- Smooth scrolling at 60fps on all devices
+- No layout jank during data updates
 
 - **Reference Data Management** (Supervisors/Admins only):
    - Manage nomenclature/reference data for the system

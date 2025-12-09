@@ -20,6 +20,7 @@ const API = (() => {
             body = null,
             headers = {},
             isFormData = false,
+            signal = null,
         } = options;
 
         // Prepare headers
@@ -56,6 +57,11 @@ const API = (() => {
             fetchOptions.body = isFormData ? body : JSON.stringify(body);
         }
 
+        // Add AbortController signal if provided
+        if (signal) {
+            fetchOptions.signal = signal;
+        }
+
         try {
             let response = await fetch(url, fetchOptions);
 
@@ -86,6 +92,9 @@ const API = (() => {
             }
             return response;
         } catch (error) {
+            if (error.name === 'AbortError') {
+                throw error;
+            }
             console.error(`API Error (${method} ${endpoint}):`, error);
             throw error;
         }
@@ -93,7 +102,7 @@ const API = (() => {
 
     // Requests API
     const requests = {
-        list: (filters = {}) => {
+        list: (filters = {}, options = {}) => {
             const params = new URLSearchParams();
             if (filters.type) params.append('type', filters.type);
             if (filters.status) params.append('status', filters.status);
@@ -109,7 +118,7 @@ const API = (() => {
 
             const queryString = params.toString();
             const url = queryString ? `/requests?${queryString}` : '/requests';
-            return request(url);
+            return request(url, options);
         },
 
         get: (id) => request(`/requests/${id}`),

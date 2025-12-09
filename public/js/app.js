@@ -7,8 +7,14 @@ const App = (() => {
     let statusChartInstance = null;
     let dynamicsChartInstance = null;
     let currentReportFilters = {};
+    let debouncedLoadRequests = null;
+    let abortController = null;
 
     const init = () => {
+        // Initialize debounced function for filters
+        debouncedLoadRequests = Utils.createDebouncedFetch((filters) => {
+            return performLoadRequests(filters);
+        }, 300);
         if (Auth.isAuthenticated()) {
             showDashboard();
         } else {
@@ -56,15 +62,20 @@ const App = (() => {
 
                 if (section === 'requests') {
                      loadRequests();
-                 } else if (section === 'overview') {
+                } else if (section === 'overview') {
                      loadStats();
-                 } else if (section === 'reports') {
+                } else if (section === 'reports') {
                      loadReportNomenclature();
                      loadReports();
-                 } else if (section === 'reference-data') {
+                } else if (section === 'reference-data') {
                      setupReferenceDataListeners();
                      loadReferenceData('request_types');
-                 }
+                }
+
+                // Clean up charts when navigating away from reports
+                if (section !== 'reports') {
+                    cleanupCharts();
+                }
                 });
         });
 
@@ -98,6 +109,68 @@ const App = (() => {
         if (filterResetBtn) {
             filterResetBtn.addEventListener('click', resetFilters);
         }
+
+        // Add debounced input handling for search and filters
+        const filterInputs = [
+            'filter-search',
+            'filter-type', 
+            'filter-status',
+            'filter-executor',
+            'filter-address',
+            'filter-territory',
+            'filter-social-group',
+            'filter-intake-form',
+            'filter-date-from',
+            'filter-date-to'
+        ];
+
+        filterInputs.forEach(inputId => {
+            const input = document.getElementById(inputId);
+            if (input) {
+                // Use different debounce delays for different inputs
+                const delay = inputId === 'filter-search' ? 500 : 300;
+                
+                input.addEventListener('input', Utils.debounce(() => {
+                    applyFilters();
+                }, delay));
+
+                // Also handle change events for selects and dates
+                input.addEventListener('change', () => {
+                    applyFilters();
+                });
+            }
+        });
+
+        // Keyboard navigation support
+        document.addEventListener('keydown', (e) => {
+            // ESC key closes modals
+            if (e.key === 'Escape') {
+                if (currentModal) {
+                    UI.hideModal();
+                }
+            }
+            
+            // Ctrl/Cmd + K focuses search
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                const searchInput = document.getElementById('filter-search');
+                if (searchInput) {
+                    searchInput.focus();
+                    Utils.announceToScreenReader('Search field focused');
+                }
+            }
+        });
+
+        // Add keyboard navigation class to body for better focus indicators
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab') {
+                document.body.classList.add('keyboard-nav');
+            }
+        });
+
+        document.addEventListener('mousedown', () => {
+            document.body.classList.remove('keyboard-nav');
+        });
 
         // Edit modal
         const editModalClose = document.getElementById('edit-modal-close');
@@ -339,20 +412,47 @@ const App = (() => {
         }
     };
 
-    const loadRequests = async (filters = {}) => {
+    const performLoadRequests = async (filters = {}) => {
+        // Cancel previous request
+        if (abortController) {
+            abortController.abort();
+        }
+
+        // Create new AbortController
+        abortController = new AbortController();
+
         UI.showLoadingState(true);
+        Utils.announceToScreenReader('Loading requests...');
+
         try {
-            const response = await API.requests.list(filters);
+            const response = await API.requests.list(filters, { signal: abortController.signal });
+            
+            // Check if request was aborted
+            if (abortController.signal.aborted) {
+                return;
+            }
+
             currentRequests = response.data || [];
             allRequests = currentRequests;
             const userRole = Auth.getUserInfo()?.role || CONFIG.ROLES.CITIZEN;
             UI.renderRequestList(currentRequests, userRole);
             UI.showLoadingState(false);
+            
+            Utils.announceToScreenReader(`Loaded ${currentRequests.length} requests`);
         } catch (error) {
-            console.error('Failed to load requests:', error);
-            UI.showNotification('Failed to load requests: ' + error.message, 'error');
-            UI.showLoadingState(false);
+            if (error.name !== 'AbortError') {
+                console.error('Failed to load requests:', error);
+                UI.showNotification('Failed to load requests: ' + error.message, 'error');
+                UI.showLoadingState(false);
+                Utils.announceToScreenReader('Failed to load requests', 'assertive');
+            }
+        } finally {
+            abortController = null;
         }
+    };
+
+    const loadRequests = async (filters = {}) => {
+        return performLoadRequests(filters);
     };
 
     const applyFilters = () => {
@@ -379,7 +479,8 @@ const App = (() => {
         if (dateTo) filters.date_to = dateTo;
         if (search) filters.search = search;
 
-        loadRequests(filters);
+        // Use debounced function for better performance
+        debouncedLoadRequests(filters);
     };
 
     const resetFilters = () => {
@@ -402,19 +503,65 @@ const App = (() => {
 
     const handleCreateRequest = async (e) => {
         e.preventDefault();
+        
+        const form = e.target;
+        const submitButton = form.querySelector('button[type="submit"]');
+        
+        // Enhanced validation
+        const requestTypeField = document.getElementById('create-type');
+        const descriptionField = document.getElementById('create-description');
+        const addressField = document.getElementById('create-address');
+        
+        let isValid = true;
+        let errorMessages = [];
 
-        const requestTypeId = document.getElementById('create-type').value;
-        const description = document.getElementById('create-description').value;
-        const address = document.getElementById('create-address').value;
+        // Validate required fields
+        const typeValidation = Utils.validateField(requestTypeField, [
+            { required: true, message: 'Request type is required' }
+        ]);
+        
+        const descriptionValidation = Utils.validateField(descriptionField, [
+            { required: true, message: 'Description is required' },
+            { minLength: 10, message: 'Description must be at least 10 characters' }
+        ]);
+        
+        const addressValidation = Utils.validateField(addressField, [
+            { required: true, message: 'Address is required' }
+        ]);
+
+        if (!typeValidation.isValid) {
+            Utils.showFieldError('create-type', typeValidation.errors);
+            isValid = false;
+        } else {
+            Utils.showFieldError('create-type', []);
+        }
+
+        if (!descriptionValidation.isValid) {
+            Utils.showFieldError('create-description', descriptionValidation.errors);
+            isValid = false;
+        } else {
+            Utils.showFieldError('create-description', []);
+        }
+
+        if (!addressValidation.isValid) {
+            Utils.showFieldError('create-address', addressValidation.errors);
+            isValid = false;
+        } else {
+            Utils.showFieldError('create-address', []);
+        }
+
+        if (!isValid) {
+            Utils.announceToScreenReader('Please correct the errors in the form', 'assertive');
+            return;
+        }
+
+        const requestTypeId = requestTypeField.value;
+        const description = descriptionField.value;
+        const address = addressField.value;
         const dueDate = document.getElementById('create-deadline').value;
         const attachmentInput = document.getElementById('create-attachment');
         const citizenFio = currentUser?.name || 'Unknown User';
         const contactEmail = currentUser?.email || '';
-
-        if (!requestTypeId || !description || !address) {
-            UI.showMessage('create-message', 'Please fill all required fields', 'error');
-            return;
-        }
 
         let file = null;
         if (attachmentInput.files.length > 0) {
@@ -426,7 +573,9 @@ const App = (() => {
             }
         }
 
-        UI.showMessage('create-message', 'Creating request...', 'info');
+        // Set loading states
+        UI.setFormLoading(form, true);
+        Utils.announceToScreenReader('Creating request...');
 
         try {
             const data = {
@@ -462,7 +611,10 @@ const App = (() => {
             }
 
             const result = await API.requests.create(data, file);
+            
             UI.showNotification('Request created successfully!', 'success');
+            Utils.announceToScreenReader('Request created successfully', 'assertive');
+            
             UI.resetForm('create-request-form');
             UI.clearMessage('create-message');
             loadRequests();
@@ -471,6 +623,9 @@ const App = (() => {
         } catch (error) {
             console.error('Failed to create request:', error);
             UI.showMessage('create-message', 'Failed to create request: ' + error.message, 'error');
+            Utils.announceToScreenReader('Failed to create request', 'assertive');
+        } finally {
+            UI.setFormLoading(form, false);
         }
     };
 
@@ -708,6 +863,18 @@ const App = (() => {
         loadReports(filters);
     };
 
+    const cleanupCharts = () => {
+        if (statusChartInstance) {
+            statusChartInstance.destroy();
+            statusChartInstance = null;
+        }
+        
+        if (dynamicsChartInstance) {
+            dynamicsChartInstance.destroy();
+            dynamicsChartInstance = null;
+        }
+    };
+
     const renderStatusChart = (overview) => {
         const canvas = document.getElementById('status-chart');
         if (!canvas) return;
@@ -715,8 +882,10 @@ const App = (() => {
         const ctx = canvas.getContext('2d');
         const byStatus = overview.byStatus || [];
 
+        // Clean up previous instance
         if (statusChartInstance) {
             statusChartInstance.destroy();
+            statusChartInstance = null;
         }
 
         const labels = byStatus.map(item => Utils.capitalizeFirstLetter(item.status.replace('_', ' ')));
@@ -761,6 +930,10 @@ const App = (() => {
                         }
                     }
                 },
+                // Memory optimization
+                animation: {
+                    duration: Utils.prefersReducedMotion() ? 0 : 300,
+                },
             },
         });
     };
@@ -772,8 +945,10 @@ const App = (() => {
         const ctx = canvas.getContext('2d');
         const periods = dynamics.periods || [];
 
+        // Clean up previous instance
         if (dynamicsChartInstance) {
             dynamicsChartInstance.destroy();
+            dynamicsChartInstance = null;
         }
 
         const labels = periods.map(p => p.period);
@@ -844,6 +1019,10 @@ const App = (() => {
                         mode: 'index',
                         intersect: false,
                     }
+                },
+                // Memory optimization
+                animation: {
+                    duration: Utils.prefersReducedMotion() ? 0 : 300,
                 },
             },
         });
