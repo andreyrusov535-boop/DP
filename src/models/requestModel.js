@@ -149,11 +149,11 @@ async function listRequests({ filters, limit, offset, sortBy, sortOrder }) {
   if (filters.executor) {
     // If it looks like an ID, assume ID, otherwise partial match on text
     if (!isNaN(Number(filters.executor))) {
-       where.push('r.executor_user_id = ?');
-       params.push(Number(filters.executor));
+      where.push('r.executor_user_id = ?');
+      params.push(Number(filters.executor));
     } else {
-       where.push('LOWER(r.executor) LIKE LOWER(?)');
-       params.push(`%${filters.executor}%`);
+      where.push('LOWER(r.executor) LIKE LOWER(?)');
+      params.push(`%${filters.executor}%`);
     }
   }
   if (filters.executorId) {

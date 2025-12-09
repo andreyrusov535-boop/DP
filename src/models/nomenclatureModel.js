@@ -200,7 +200,7 @@ async function listEntities(tableName, options = {}) {
 
   const { includeInactive = false, limit = 50, offset = 0, sortBy = 'name', sortOrder = 'ASC' } = options;
   
-  let query = `SELECT id, code, name, is_active as active FROM nomenclature WHERE type = ?`;
+  let query = 'SELECT id, code, name, is_active as active FROM nomenclature WHERE type = ?';
   const params = [type];
   
   if (!includeInactive) {
@@ -217,7 +217,7 @@ async function countEntities(tableName, options = {}) {
   const type = TABLE_TYPE_MAP[tableName];
   const { includeInactive = false } = options;
   
-  let query = `SELECT COUNT(*) as count FROM nomenclature WHERE type = ?`;
+  let query = 'SELECT COUNT(*) as count FROM nomenclature WHERE type = ?';
   const params = [type];
 
   if (!includeInactive) {
@@ -232,7 +232,7 @@ async function getEntityById(tableName, id, options = {}) {
   const type = TABLE_TYPE_MAP[tableName];
   const { includeInactive = false } = options;
   
-  let query = `SELECT id, code, name, is_active as active FROM nomenclature WHERE id = ? AND type = ?`;
+  let query = 'SELECT id, code, name, is_active as active FROM nomenclature WHERE id = ? AND type = ?';
   const params = [id, type];
   
   if (!includeInactive) {
@@ -245,7 +245,7 @@ async function getEntityById(tableName, id, options = {}) {
 async function findEntityByCode(tableName, code) {
   const type = TABLE_TYPE_MAP[tableName];
   return dbService.get(
-    `SELECT id, code, name, is_active as active FROM nomenclature WHERE type = ? AND code = ?`, 
+    'SELECT id, code, name, is_active as active FROM nomenclature WHERE type = ? AND code = ?', 
     [type, code]
   );
 }
@@ -253,7 +253,7 @@ async function findEntityByCode(tableName, code) {
 async function createEntity(tableName, code, name) {
   const type = TABLE_TYPE_MAP[tableName];
   const result = await dbService.execute(
-    `INSERT INTO nomenclature (type, code, name, is_active) VALUES (?, ?, ?, 1)`,
+    'INSERT INTO nomenclature (type, code, name, is_active) VALUES (?, ?, ?, 1)',
     [type, code, name]
   );
   
@@ -268,7 +268,7 @@ async function createEntity(tableName, code, name) {
 async function updateEntity(tableName, id, code, name) {
   const type = TABLE_TYPE_MAP[tableName];
   await dbService.execute(
-    `UPDATE nomenclature SET code = ?, name = ? WHERE id = ? AND type = ?`,
+    'UPDATE nomenclature SET code = ?, name = ? WHERE id = ? AND type = ?',
     [code, name, id, type]
   );
   return getEntityById(tableName, id, { includeInactive: true });
@@ -277,7 +277,7 @@ async function updateEntity(tableName, id, code, name) {
 async function toggleEntityActive(tableName, id, active) {
   const type = TABLE_TYPE_MAP[tableName];
   await dbService.execute(
-    `UPDATE nomenclature SET is_active = ? WHERE id = ? AND type = ?`,
+    'UPDATE nomenclature SET is_active = ? WHERE id = ? AND type = ?',
     [active ? 1 : 0, id, type]
   );
   return getEntityById(tableName, id, { includeInactive: true });
