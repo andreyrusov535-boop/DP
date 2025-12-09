@@ -1,0 +1,1386 @@
+openapi: 3.0.0
+info:
+  title: Request Management System API
+  description: |
+    A comprehensive REST API for managing citizen requests with role-based access control, file handling, reporting, and audit logging.
+    
+    **Base URL**: `/api`
+    
+    **Authentication**: JWT Bearer token in `Authorization` header
+    
+    **Rate Limiting**: 100 requests per 15 minutes per IP
+  version: 1.0.0
+  contact:
+    name: Support Team
+    email: support@example.com
+
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+  - url: https://requests.example.com/api
+    description: Production server
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from login endpoint
+
+  schemas:
+    Error:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Error message
+        errors:
+          type: array
+          description: Detailed validation errors
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+    User:
+      type: object
+      properties:
+        userId:
+          type: integer
+          description: User ID
+        email:
+          type: string
+          format: email
+          description: User email address (unique)
+        name:
+          type: string
+          description: User display name
+        role:
+          type: string
+          enum: [citizen, operator, executor, supervisor, admin]
+          description: User role
+        status:
+          type: string
+          enum: [active, locked]
+          description: User account status
+        created_at:
+          type: string
+          format: date-time
+          description: User creation timestamp
+
+    File:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: File ID
+        originalName:
+          type: string
+          description: Original filename
+        mimeType:
+          type: string
+          description: MIME type (image/jpeg, image/png, image/gif, application/pdf)
+        size:
+          type: integer
+          description: File size in bytes
+        createdAt:
+          type: string
+          format: date-time
+          description: Upload timestamp
+        downloadUrl:
+          type: string
+          description: URL to download the file
+
+    Request:
+      type: object
+      required:
+        - citizenFio
+        - description
+      properties:
+        id:
+          type: integer
+          description: Request ID
+        citizenFio:
+          type: string
+          description: Full name of citizen (required)
+        contactEmail:
+          type: string
+          format: email
+          description: Contact email address (optional)
+        contactPhone:
+          type: string
+          description: Contact phone number (optional)
+        contactChannel:
+          type: string
+          description: Preferred contact method (optional)
+        address:
+          type: string
+          description: Physical address (optional)
+        territory:
+          type: string
+          description: Administrative territory (optional)
+        requestTypeId:
+          type: integer
+          description: Request type ID (foreign key to request_types)
+        requestType:
+          type: object
+          properties:
+            id:
+              type: integer
+            code:
+              type: string
+            name:
+              type: string
+        requestTopicId:
+          type: integer
+          description: Request topic ID (foreign key to request_topics)
+        requestTopic:
+          type: object
+          properties:
+            id:
+              type: integer
+            code:
+              type: string
+            name:
+              type: string
+        socialGroupId:
+          type: integer
+          description: Social group ID (optional)
+        intakeFormId:
+          type: integer
+          description: Intake form ID (optional)
+        description:
+          type: string
+          description: Request description (required, sanitized)
+        status:
+          type: string
+          enum: [new, in_progress, paused, completed, archived, cancelled, removed]
+          description: Request status
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+          description: Priority level
+        executor:
+          type: string
+          description: Assigned executor name (optional)
+        executorUserId:
+          type: integer
+          description: Assigned executor user ID (optional)
+        dueDate:
+          type: string
+          format: date-time
+          description: Deadline date (optional, ISO 8601)
+        controlStatus:
+          type: string
+          enum: [no, normal, approaching, overdue]
+          description: Deadline control status (computed)
+        removedFromControlAt:
+          type: string
+          format: date-time
+          description: When removed from deadline control
+        removedFromControlBy:
+          type: string
+          description: Name of person who removed from control
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/File'
+          description: List of attached files
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+
+    RequestList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Request'
+        meta:
+          type: object
+          properties:
+            total:
+              type: integer
+              description: Total number of requests matching filters
+            page:
+              type: integer
+              description: Current page number
+            limit:
+              type: integer
+              description: Items per page
+            pages:
+              type: integer
+              description: Total number of pages
+
+    ReportOverview:
+      type: object
+      properties:
+        totalRequests:
+          type: integer
+        byStatus:
+          type: object
+          additionalProperties:
+            type: integer
+        byType:
+          type: object
+          additionalProperties:
+            type: integer
+        byPriority:
+          type: object
+          additionalProperties:
+            type: integer
+        byControlStatus:
+          type: object
+          additionalProperties:
+            type: integer
+        averageResponseTime:
+          type: number
+          description: Average response time in hours
+
+    AuditLogEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        action:
+          type: string
+          description: Action performed (e.g., request_created, user_updated)
+        entity_type:
+          type: string
+          description: Type of entity affected (request, user, file, config)
+        payload:
+          type: object
+          description: Additional data about the action
+        created_at:
+          type: string
+          format: date-time
+
+    NomenclatureItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+        active:
+          type: boolean
+
+security:
+  - BearerAuth: []
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      description: Check if the API is healthy
+      operationId: healthCheck
+      security: []
+      tags:
+        - System
+      responses:
+        200:
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /auth/register:
+    post:
+      summary: User registration
+      description: |
+        Create a new user account. Email and password are required.
+        Password must be at least 8 characters with uppercase, lowercase, and number.
+      operationId: registerUser
+      security: []
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - name
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                name:
+                  type: string
+                role:
+                  type: string
+                  enum: [citizen, operator, executor, supervisor]
+                  default: citizen
+      responses:
+        201:
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        400:
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        409:
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/login:
+    post:
+      summary: User login
+      description: Authenticate with email and password. Returns access and refresh tokens.
+      operationId: loginUser
+      security: []
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        200:
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                    description: JWT access token
+                  refreshToken:
+                    type: string
+                    description: JWT refresh token
+                  user:
+                    $ref: '#/components/schemas/User'
+        401:
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/refresh-token:
+    post:
+      summary: Refresh access token
+      description: Get a new access token using a refresh token
+      operationId: refreshToken
+      security: []
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        200:
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+        401:
+          description: Invalid refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /requests:
+    get:
+      summary: List requests
+      description: Retrieve a paginated list of requests with advanced filtering and search
+      operationId: listRequests
+      tags:
+        - Requests
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Items per page
+        - name: fio
+          in: query
+          schema:
+            type: string
+          description: Partial match on citizen name
+        - name: type
+          in: query
+          schema:
+            type: integer
+          description: Request type ID
+        - name: topic
+          in: query
+          schema:
+            type: integer
+          description: Request topic ID
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [new, in_progress, paused, completed, archived, cancelled, removed]
+          description: Request status
+        - name: executor
+          in: query
+          schema:
+            type: string
+          description: Executor name (partial match)
+        - name: priority
+          in: query
+          schema:
+            type: string
+            enum: [low, medium, high, urgent]
+          description: Priority level
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Due date from (ISO 8601)
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Due date to (ISO 8601)
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Full-text search across description, citizen name, executor
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [created_at, due_date, priority, status, control_status, citizen_fio]
+            default: created_at
+          description: Field to sort by
+        - name: sort_order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          description: Sort order
+      responses:
+        200:
+          description: Requests retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestList'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: Create a new request
+      description: |
+        Create a new request with optional file attachments.
+        Required fields: citizenFio, description
+        Files: multipart field name "attachments", up to 5 files, max 10MB each
+      operationId: createRequest
+      tags:
+        - Requests
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Request'
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - citizenFio
+                - description
+              properties:
+                citizenFio:
+                  type: string
+                description:
+                  type: string
+                contactEmail:
+                  type: string
+                  format: email
+                contactPhone:
+                  type: string
+                contactChannel:
+                  type: string
+                address:
+                  type: string
+                territory:
+                  type: string
+                requestTypeId:
+                  type: integer
+                requestTopicId:
+                  type: integer
+                socialGroupId:
+                  type: integer
+                intakeFormId:
+                  type: integer
+                priority:
+                  type: string
+                  enum: [low, medium, high, urgent]
+                dueDate:
+                  type: string
+                  format: date-time
+                executorUserId:
+                  type: integer
+                attachments:
+                  type: array
+                  maxItems: 5
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        201:
+          description: Request created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Request'
+        400:
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /requests/{id}:
+    get:
+      summary: Get a single request
+      description: Retrieve full details of a request including all attachments
+      operationId: getRequest
+      tags:
+        - Requests
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Request ID
+      responses:
+        200:
+          description: Request retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Request'
+        404:
+          description: Request not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      summary: Update a request
+      description: |
+        Partially update a request. All fields are optional.
+        File attachments can be added (respecting 5-file limit).
+        Requires operator role or higher.
+      operationId: updateRequest
+      tags:
+        - Requests
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Request ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                citizenFio:
+                  type: string
+                contactEmail:
+                  type: string
+                contactPhone:
+                  type: string
+                contactChannel:
+                  type: string
+                address:
+                  type: string
+                territory:
+                  type: string
+                requestTypeId:
+                  type: integer
+                requestTopicId:
+                  type: integer
+                socialGroupId:
+                  type: integer
+                intakeFormId:
+                  type: integer
+                description:
+                  type: string
+                priority:
+                  type: string
+                  enum: [low, medium, high, urgent]
+                dueDate:
+                  type: string
+                  format: date-time
+                status:
+                  type: string
+                  enum: [new, in_progress, paused, completed, archived, cancelled]
+                executorUserId:
+                  type: integer
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                citizenFio:
+                  type: string
+                description:
+                  type: string
+                priority:
+                  type: string
+                status:
+                  type: string
+                attachments:
+                  type: array
+                  maxItems: 5
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        200:
+          description: Request updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Request'
+        400:
+          description: Validation error or no updates supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Request not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /requests/{id}/remove-from-control:
+    patch:
+      summary: Remove request from deadline control
+      description: |
+        Stop tracking the deadline for a request.
+        Changes status to "removed" and prevents deadline notifications.
+        Requires operator role or higher.
+      operationId: removeFromControl
+      tags:
+        - Requests
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note:
+                  type: string
+                  maxLength: 1000
+                  description: Explanation for removal
+      responses:
+        200:
+          description: Request removed from control
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Request'
+        400:
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Request not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /files/{id}/download:
+    get:
+      summary: Download a file attachment
+      description: Download a file attached to a request. Preserves original filename.
+      operationId: downloadFile
+      tags:
+        - Files
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: File ID
+      responses:
+        200:
+          description: File downloaded
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        404:
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /files/{id}:
+    delete:
+      summary: Delete a file attachment
+      description: |
+        Delete a file from a request.
+        Removes from disk and database, writes audit log.
+        Requires operator role or higher.
+      operationId: deleteFile
+      tags:
+        - Files
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: File ID
+      responses:
+        200:
+          description: File deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        403:
+          description: Forbidden (insufficient role)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /reports/overview:
+    get:
+      summary: Get report overview
+      description: |
+        Get high-level metrics about requests including counts by status, type, priority.
+        Requires supervisor role or higher.
+      operationId: getReportOverview
+      tags:
+        - Reports
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+          description: Filter by status
+        - name: type
+          in: query
+          schema:
+            type: integer
+          description: Filter by request type
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Date range from
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Date range to
+      responses:
+        200:
+          description: Overview retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportOverview'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        403:
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /reports/dynamics:
+    get:
+      summary: Get report dynamics
+      description: |
+        Get time-series data showing request trends over time.
+        Group by daily or weekly intervals.
+        Requires supervisor role or higher.
+      operationId: getReportDynamics
+      tags:
+        - Reports
+      parameters:
+        - name: groupBy
+          in: query
+          schema:
+            type: string
+            enum: [daily, weekly]
+            default: daily
+          description: Time grouping
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        200:
+          description: Dynamics retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+
+  /reports/excel:
+    post:
+      summary: Export report to Excel
+      description: Generate and download an Excel file with report data
+      operationId: exportExcel
+      tags:
+        - Reports
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                date_from:
+                  type: string
+                  format: date-time
+                date_to:
+                  type: string
+                  format: date-time
+      responses:
+        200:
+          description: Excel file generated
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+
+  /reports/pdf:
+    post:
+      summary: Export report to PDF
+      description: Generate and download a PDF file with report data
+      operationId: exportPDF
+      tags:
+        - Reports
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                date_from:
+                  type: string
+                  format: date-time
+                date_to:
+                  type: string
+                  format: date-time
+      responses:
+        200:
+          description: PDF file generated
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+
+  /nomenclature:
+    get:
+      summary: Get all nomenclature
+      description: Retrieve request types and topics
+      operationId: getNomenclature
+      tags:
+        - Nomenclature
+      security: []
+      responses:
+        200:
+          description: Nomenclature retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  types:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/NomenclatureItem'
+                  topics:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/NomenclatureItem'
+
+  /nomenclature/types:
+    get:
+      summary: Get request types
+      operationId: getRequestTypes
+      tags:
+        - Nomenclature
+      security: []
+      responses:
+        200:
+          description: Request types retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  types:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/NomenclatureItem'
+
+  /nomenclature/topics:
+    get:
+      summary: Get request topics
+      operationId: getRequestTopics
+      tags:
+        - Nomenclature
+      security: []
+      responses:
+        200:
+          description: Request topics retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  topics:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/NomenclatureItem'
+
+  /nomenclature-admin/{entity}:
+    get:
+      summary: List nomenclature items for entity
+      description: |
+        List items for a nomenclature entity.
+        Requires supervisor or admin role.
+      operationId: listNomenclatureItems
+      tags:
+        - Nomenclature Admin
+      parameters:
+        - name: entity
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [request_types, request_topics, intake_forms, social_groups]
+          description: Entity type
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: includeInactive
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        200:
+          description: Items retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/NomenclatureItem'
+                  total:
+                    type: integer
+
+    post:
+      summary: Create nomenclature item
+      description: Create a new nomenclature item. Requires admin role.
+      operationId: createNomenclatureItem
+      tags:
+        - Nomenclature Admin
+      parameters:
+        - name: entity
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [request_types, request_topics, intake_forms, social_groups]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+                - name
+              properties:
+                code:
+                  type: string
+                name:
+                  type: string
+      responses:
+        201:
+          description: Item created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NomenclatureItem'
+        409:
+          description: Code already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /nomenclature-admin/{entity}/{id}:
+    get:
+      summary: Get nomenclature item
+      operationId: getNomenclatureItem
+      tags:
+        - Nomenclature Admin
+      parameters:
+        - name: entity
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [request_types, request_topics, intake_forms, social_groups]
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Item retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NomenclatureItem'
+        404:
+          description: Item not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      summary: Update nomenclature item
+      description: Update a nomenclature item. Requires admin role.
+      operationId: updateNomenclatureItem
+      tags:
+        - Nomenclature Admin
+      parameters:
+        - name: entity
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                name:
+                  type: string
+      responses:
+        200:
+          description: Item updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NomenclatureItem'
+        404:
+          description: Item not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /nomenclature-admin/{entity}/{id}/toggle-active:
+    patch:
+      summary: Toggle nomenclature item active status
+      description: Activate or deactivate a nomenclature item. Requires admin role.
+      operationId: toggleNomenclatureActive
+      tags:
+        - Nomenclature Admin
+      parameters:
+        - name: entity
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Status toggled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NomenclatureItem'
+        404:
+          description: Item not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users:
+    get:
+      summary: List users
+      description: Get paginated list of users. Requires admin role.
+      operationId: listUsers
+      tags:
+        - Users
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        200:
+          description: Users retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  meta:
+                    type: object
+
+    post:
+      summary: Create a new user
+      description: Create a new user account. Requires admin role.
+      operationId: createUser
+      tags:
+        - Users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - name
+                - role
+              properties:
+                email:
+                  type: string
+                  format: email
+                name:
+                  type: string
+                role:
+                  type: string
+                  enum: [citizen, operator, executor, supervisor, admin]
+      responses:
+        201:
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        409:
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/{id}:
+    patch:
+      summary: Update user
+      description: Update user role or status. Requires admin role.
+      operationId: updateUser
+      tags:
+        - Users
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role:
+                  type: string
+                  enum: [citizen, operator, executor, supervisor, admin]
+                status:
+                  type: string
+                  enum: [active, locked]
+      responses:
+        200:
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        404:
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'

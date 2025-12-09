@@ -1,8 +1,20 @@
-# Request Management System - Frontend Dashboard MVP
+# Request Management System - Phase 3
 
 ## Overview
 
-This is a responsive HTML/CSS/Vanilla JavaScript frontend for a Request Management System. It provides a modern, accessible dashboard for managing requests with role-based features.
+A comprehensive, production-ready Request Management System with JWT authentication, role-based access control, file handling, reporting, and full audit trails. Built with Node.js/Express backend and vanilla JavaScript frontend.
+
+**Current Version**: 1.0.0  
+**Status**: Production Ready (Post-UAT)
+
+## Quick Links
+
+- **[Installation Guide](docs/INSTALLATION.md)** - Setup for development, Docker, and production
+- **[Administrator Guide](docs/ADMIN_GUIDE.md)** - System administration and configuration
+- **[User Guide](docs/USER_GUIDE.md)** - Role-based user instructions
+- **[API Specification](docs/openapi.yaml)** - Complete OpenAPI/Swagger documentation
+- **[UAT Checklist](docs/UAT_CHECKLIST.md)** - Testing and release procedures
+- **[Changelog](CHANGELOG.md)** - Release notes and version history
 
 ## Features
 
@@ -524,3 +536,85 @@ The application logs key events to the console for debugging:
 - Loading states
 
 Use Chrome DevTools (F12) to inspect network requests, storage, and console output.
+
+## Testing & Quality Assurance
+
+### Unit & Integration Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run with coverage
+npm test -- --coverage
+```
+
+Tests cover:
+- Authentication and authorization
+- Request CRUD operations
+- File management (upload, download, delete)
+- Report generation
+- Nomenclature management
+- Audit logging
+- Notification system
+
+### E2E Tests (Puppeteer)
+
+```bash
+# Run end-to-end tests
+npm run test:e2e
+```
+
+E2E tests cover:
+- Complete authentication flow (register, login, refresh)
+- Request creation, editing, deletion
+- File uploads and management
+- Filter and search functionality
+- Authorization and role enforcement
+
+### Security Testing
+
+```bash
+# Run security audit and linting
+npm run security
+```
+
+Includes:
+- `npm audit --production` for vulnerability scanning
+- ESLint security rules enforcement
+- Security test suite (`tests/security.test.js`)
+
+### Performance Testing
+
+```bash
+# Run performance smoke tests
+npm run test:perf
+```
+
+Validates:
+- Health check: < 500ms
+- API endpoints: < 2s average response time
+- Report generation: < 10s
+- No memory leaks under load
+
+### Test Coverage
+
+- Unit tests: 170+ test cases
+- E2E tests: 40+ browser-based scenarios
+- Security tests: 40+ vulnerability scenarios
+- Performance tests: 6 critical endpoints
+
+## npm Scripts
+
+```bash
+npm start              # Start production server
+npm run dev           # Start development server (with auto-reload via nodemon)
+npm test              # Run unit and integration tests
+npm run test:e2e      # Run E2E tests with Puppeteer
+npm run security      # Run security audit and linting
+npm run test:perf     # Run performance smoke tests
+npm run lint          # Fix ESLint issues
+npm run migrate       # Create/update database schema
+npm run seed          # Seed initial nomenclature data
+npm run perf          # Run load test with Autocannon
+```
