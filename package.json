@@ -13,7 +13,8 @@
     "lint": "eslint src --fix",
     "migrate": "node scripts/migrate.js",
     "seed": "node scripts/seed.js",
-    "perf": "node scripts/performance-test.js"
+    "perf": "node scripts/performance-test.js",
+    "smoke-test": "node scripts/smoke-test.js"
   },
   "keywords": [],
   "author": "",

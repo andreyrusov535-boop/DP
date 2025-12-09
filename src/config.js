@@ -36,7 +36,7 @@ module.exports = {
   // Request Constants
   DEADLINE_APPROACHING_THRESHOLD_HOURS: 48,
   REQUEST_STATUSES: ['new', 'in_progress', 'paused', 'completed', 'archived', 'cancelled', 'removed'],
-  PRIORITIES: ['low', 'medium', 'high', 'urgent'],
+  PRIORITIES: ['low', 'medium', 'high', 'urgent', 'critical'],
 
   // Notification Settings
   NOTIFICATION_HOURS_BEFORE_DEADLINE: parseInt(process.env.NOTIFICATION_HOURS_BEFORE_DEADLINE || '24', 10),

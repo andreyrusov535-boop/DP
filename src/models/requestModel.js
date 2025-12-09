@@ -1,60 +1,68 @@
-const { getDb } = require('../db');
+const { dbService } = require('../db');
 
 const SORTABLE_FIELDS = {
   created_at: 'r.created_at',
   due_date: 'r.due_date',
-  priority: 'r.priority',
+  priority: 'r.priority_id', // Sort by ID (critical=1) better than text
   status: 'r.status',
   control_status: 'r.control_status',
   citizen_fio: 'r.citizen_fio',
   address: 'r.address',
-  territory: 'r.territory'
+  territory: 'r.territory',
+  is_overdue: 'r.is_overdue'
 };
 
 async function insertRequest(record) {
-  const db = getDb();
   const sql = `
     INSERT INTO requests (
       citizen_fio,
       contact_phone,
       contact_email,
+      contact_channel,
       request_type_id,
       request_topic_id,
+      intake_form_id,
+      social_group_id,
       description,
       address,
       territory,
-      social_group_id,
-      intake_form_id,
-      contact_channel,
       status,
+      priority,
+      priority_id,
       executor,
       executor_user_id,
-      priority,
       due_date,
       control_status,
+      external_id,
+      source,
+      created_by,
       created_at,
       updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
-  const result = await db.run(sql, [
+  const result = await dbService.execute(sql, [
     record.citizen_fio,
     record.contact_phone ?? null,
     record.contact_email ?? null,
+    record.contact_channel ?? null,
     record.request_type_id ?? null,
     record.request_topic_id ?? null,
+    record.intake_form_id ?? record.receipt_form_id ?? null, // Support both names
+    record.social_group_id ?? null,
     record.description ?? null,
     record.address ?? null,
     record.territory ?? null,
-    record.social_group_id ?? null,
-    record.intake_form_id ?? null,
-    record.contact_channel ?? null,
     record.status,
+    record.priority ?? 'medium', // Phase 3 text
+    record.priority_id ?? 3, // Default to medium (3) if not provided
     record.executor ?? null,
-    record.executor_user_id ?? null,
-    record.priority,
+    record.executor_user_id ?? record.executor_id ?? null, // Support both names
     record.due_date ?? null,
     record.control_status,
+    record.external_id ?? null,
+    record.source ?? 'manual',
+    record.created_by ?? null,
     record.created_at,
     record.updated_at
   ]);
@@ -63,12 +71,17 @@ async function insertRequest(record) {
 }
 
 async function updateRequest(id, updates) {
-  const db = getDb();
   const fields = [];
   const values = [];
 
   Object.entries(updates).forEach(([key, value]) => {
-    fields.push(`${key} = ?`);
+    // Map legacy/aliased keys if needed
+    let dbKey = key;
+    if (key === 'executorId') dbKey = 'executor_user_id';
+    if (key === 'receiptFormId') dbKey = 'intake_form_id';
+    if (key === 'priorityId') dbKey = 'priority_id';
+    
+    fields.push(`${dbKey} = ?`);
     values.push(value);
   });
 
@@ -77,34 +90,42 @@ async function updateRequest(id, updates) {
   }
 
   values.push(id);
-  const sql = `UPDATE requests SET ${fields.join(', ')}, updated_at = ? WHERE id = ?`;
-  values.splice(values.length - 1, 0, new Date().toISOString());
-  const result = await db.run(sql, values);
+  const sql = `UPDATE requests SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+  const result = await dbService.execute(sql, values);
   return result.changes;
 }
 
 async function getRequestById(id) {
-  const db = getDb();
   const sql = `
     SELECT r.*, 
-           t.name AS request_type_name, 
+           rt.name AS request_type_name,
+           rt.code AS request_type_code,
            topic.name AS request_topic_name,
-           sg.name AS social_group_name,
+           topic.code AS request_topic_code,
            inf.name AS intake_form_name,
-           u.name AS removed_by_user_name
+           inf.name AS receipt_form_name, -- alias
+           inf.code AS receipt_form_code,
+           sg.name AS social_group_name,
+           p.name AS priority_name,
+           p.code AS priority_code,
+           u.name AS executor_name,
+           u.full_name AS executor_full_name,
+           u.username AS executor_username,
+           rm.name AS removed_by_user_name
     FROM requests r
-    LEFT JOIN request_types t ON r.request_type_id = t.id
-    LEFT JOIN request_topics topic ON r.request_topic_id = topic.id
-    LEFT JOIN social_groups sg ON r.social_group_id = sg.id
-    LEFT JOIN intake_forms inf ON r.intake_form_id = inf.id
-    LEFT JOIN users u ON r.removed_from_control_by_user_id = u.id
+    LEFT JOIN nomenclature rt ON r.request_type_id = rt.id
+    LEFT JOIN nomenclature topic ON r.request_topic_id = topic.id
+    LEFT JOIN nomenclature inf ON r.intake_form_id = inf.id
+    LEFT JOIN nomenclature sg ON r.social_group_id = sg.id
+    LEFT JOIN nomenclature p ON r.priority_id = p.id
+    LEFT JOIN users u ON r.executor_user_id = u.id
+    LEFT JOIN users rm ON r.removed_from_control_by_user_id = rm.id
     WHERE r.id = ?
   `;
-  return db.get(sql, id);
+  return dbService.getOne('get_request_by_id', [sql, id]);
 }
 
 async function listRequests({ filters, limit, offset, sortBy, sortOrder }) {
-  const db = getDb();
   const where = [];
   const params = [];
 
@@ -124,14 +145,32 @@ async function listRequests({ filters, limit, offset, sortBy, sortOrder }) {
     where.push('r.status = ?');
     params.push(filters.status);
   }
+  // Support searching by text executor OR user ID
   if (filters.executor) {
-    where.push('LOWER(r.executor) LIKE LOWER(?)');
-    params.push(`%${filters.executor}%`);
+    // If it looks like an ID, assume ID, otherwise partial match on text
+    if (!isNaN(Number(filters.executor))) {
+       where.push('r.executor_user_id = ?');
+       params.push(Number(filters.executor));
+    } else {
+       where.push('LOWER(r.executor) LIKE LOWER(?)');
+       params.push(`%${filters.executor}%`);
+    }
   }
+  if (filters.executorId) {
+    where.push('r.executor_user_id = ?');
+    params.push(filters.executorId);
+  }
+  
+  // Support priority text or ID
   if (filters.priority) {
     where.push('r.priority = ?');
     params.push(filters.priority);
   }
+  if (filters.priorityId) {
+    where.push('r.priority_id = ?');
+    params.push(filters.priorityId);
+  }
+  
   if (filters.address) {
     where.push('LOWER(r.address) LIKE LOWER(?)');
     params.push(`%${filters.address}%`);
@@ -162,8 +201,11 @@ async function listRequests({ filters, limit, offset, sortBy, sortOrder }) {
   }
   
   if (filters.search) {
-    where.push('r.id IN (SELECT id FROM request_search WHERE request_search MATCH ?)');
-    params.push(filters.search);
+    // Combine FTS5 and LIKE
+    // If FTS available
+    where.push('(r.id IN (SELECT id FROM request_search WHERE request_search MATCH ?) OR LOWER(r.description) LIKE LOWER(?) OR LOWER(r.citizen_fio) LIKE LOWER(?) OR LOWER(r.contact_email) LIKE LOWER(?))');
+    const term = filters.search;
+    params.push(term, `%${term}%`, `%${term}%`, `%${term}%`);
   }
 
   const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
@@ -171,29 +213,33 @@ async function listRequests({ filters, limit, offset, sortBy, sortOrder }) {
   const sortDirection = sortOrder === 'asc' ? 'ASC' : 'DESC';
 
   const countSql = `SELECT COUNT(*) as total FROM requests r ${whereClause}`;
-  const countParams = [...params];
-  const { total } = await db.get(countSql, countParams);
+  const { total } = await dbService.get(countSql, params);
 
   const dataSql = `
     SELECT r.*, 
-           t.name AS request_type_name, 
+           rt.name AS request_type_name, 
            topic.name AS request_topic_name,
-           sg.name AS social_group_name,
            inf.name AS intake_form_name,
-           u.name AS removed_by_user_name
+           inf.name AS receipt_form_name,
+           sg.name AS social_group_name,
+           p.name AS priority_name,
+           u.name AS executor_name,
+           u.full_name AS executor_full_name,
+           rm.name AS removed_by_user_name
     FROM requests r
-    LEFT JOIN request_types t ON r.request_type_id = t.id
-    LEFT JOIN request_topics topic ON r.request_topic_id = topic.id
-    LEFT JOIN social_groups sg ON r.social_group_id = sg.id
-    LEFT JOIN intake_forms inf ON r.intake_form_id = inf.id
-    LEFT JOIN users u ON r.removed_from_control_by_user_id = u.id
+    LEFT JOIN nomenclature rt ON r.request_type_id = rt.id
+    LEFT JOIN nomenclature topic ON r.request_topic_id = topic.id
+    LEFT JOIN nomenclature inf ON r.intake_form_id = inf.id
+    LEFT JOIN nomenclature sg ON r.social_group_id = sg.id
+    LEFT JOIN nomenclature p ON r.priority_id = p.id
+    LEFT JOIN users u ON r.executor_user_id = u.id
+    LEFT JOIN users rm ON r.removed_from_control_by_user_id = rm.id
     ${whereClause}
     ORDER BY ${sortField} ${sortDirection}
     LIMIT ? OFFSET ?
   `;
 
-  const dataParams = [...params, limit, offset];
-  const rows = await db.all(dataSql, dataParams);
+  const rows = await dbService.all(dataSql, [...params, limit, offset]);
   return { rows, total };
 }
 
@@ -201,53 +247,61 @@ async function insertFiles(records) {
   if (!records.length) {
     return;
   }
-  const db = getDb();
-  const stmt = await db.prepare(`
-    INSERT INTO files (request_id, original_name, stored_name, mime_type, size, created_at)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `);
-  try {
-    for (const record of records) {
-      await stmt.run(
-        record.request_id,
-        record.original_name,
-        record.stored_name,
-        record.mime_type,
-        record.size,
-        record.created_at
-      );
-    }
-  } finally {
-    await stmt.finalize();
+  
+  const sql = `
+    INSERT INTO files (request_id, original_name, stored_name, mime_type, size, file_hash, description, category, uploaded_by, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `;
+  
+  for (const record of records) {
+    await dbService.execute(sql, [
+      record.request_id,
+      record.original_name,
+      record.stored_name,
+      record.mime_type,
+      record.size,
+      record.file_hash || null,
+      record.description || null,
+      record.category || 'attachment',
+      record.uploaded_by || null,
+      record.created_at
+    ]);
   }
 }
 
 async function getFilesByRequestId(requestId) {
-  const db = getDb();
-  return db.all(
-    'SELECT id, original_name, mime_type, size, created_at FROM files WHERE request_id = ? ORDER BY id ASC',
-    requestId
-  );
+  const sql = `
+    SELECT id, original_name, mime_type, size, file_hash, description, category, uploaded_by, created_at 
+    FROM files 
+    WHERE request_id = ? 
+    ORDER BY id ASC
+  `;
+  return dbService.all(sql, requestId);
 }
 
 async function getFileById(fileId) {
-  const db = getDb();
-  return db.get('SELECT * FROM files WHERE id = ?', fileId);
+  const sql = 'SELECT * FROM files WHERE id = ?';
+  return dbService.get(sql, fileId);
 }
 
 async function deleteFileById(fileId) {
-  const db = getDb();
   const sql = 'DELETE FROM files WHERE id = ?';
-  return db.run(sql, fileId);
+  return dbService.execute(sql, fileId);
 }
 
 async function logProceeding(log) {
-  const db = getDb();
   const sql = `
     INSERT INTO request_proceedings (request_id, action, notes, created_at)
     VALUES (?, ?, ?, ?)
   `;
-  return db.run(sql, [log.request_id, log.action, log.details, log.created_at]);
+  return dbService.execute(sql, [log.request_id, log.action, log.details, log.created_at]);
+}
+
+async function logAction(tableName, log) {
+  const sql = `INSERT INTO ${tableName} (request_id, action, ${tableName === 'audit_log' ? 'payload' : 'notes'}, created_at) VALUES (?, ?, ?, ?)`;
+  return dbService.execute(sql, [
+    log.request_id, log.action, log.details, log.created_at
+  ]);
 }
 
 module.exports = {
@@ -260,5 +314,6 @@ module.exports = {
   getFileById,
   deleteFileById,
   logProceeding,
+  logAction,
   SORTABLE_FIELDS
 };

@@ -22,14 +22,29 @@ const baseValidations = [
     .withMessage('contactPhone should be at least 5 characters'),
   body('requestTypeId').optional().toInt().isInt({ min: 1 }).withMessage('requestTypeId must be numeric'),
   body('requestTopicId').optional().toInt().isInt({ min: 1 }).withMessage('requestTopicId must be numeric'),
+  
+  // Phase 3 fields
   body('socialGroupId').optional().toInt().isInt({ min: 1 }).withMessage('socialGroupId must be numeric'),
   body('intakeFormId').optional().toInt().isInt({ min: 1 }).withMessage('intakeFormId must be numeric'),
   body('address').optional().trim().isLength({ min: 1 }).withMessage('address cannot be empty'),
   body('territory').optional().trim().isLength({ min: 1 }).withMessage('territory cannot be empty'),
   body('contactChannel').optional().trim().isLength({ min: 1 }).withMessage('contactChannel cannot be empty'),
   body('executorUserId').optional().toInt().isInt({ min: 1 }).withMessage('executorUserId must be numeric'),
+  
+  // Feature aliases
+  body('receiptFormId').optional().toInt().isInt({ min: 1 }).withMessage('receiptFormId must be numeric'),
+  body('executorId').optional().toInt().isInt({ min: 1 }).withMessage('executorId must be numeric'),
+  body('priorityId').optional().toInt().isInt({ min: 1 }).withMessage('priorityId must be numeric'),
+  
   body('dueDate').optional().isISO8601().withMessage('dueDate must be ISO8601 date'),
-  body('priority').optional().isIn(PRIORITIES).withMessage('priority is invalid'),
+  
+  // Hybrid priority validation: string from list OR numeric ID
+  body('priority').optional().custom((value) => {
+    if (PRIORITIES.includes(value)) return true;
+    if (!isNaN(parseInt(value)) && parseInt(value) > 0) return true;
+    throw new Error('priority is invalid (must be string from list or numeric ID)');
+  }),
+  
   body('status').optional().isIn(REQUEST_STATUSES).withMessage('status is invalid')
 ];
 
