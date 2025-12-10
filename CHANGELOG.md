@@ -5,7 +5,32 @@ All notable changes to the Request Management System are documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2024-01-XX
+## [1.0.0] - 2025-12-10
+
+### Final Consolidation: Phase 1-3 Merged to Main
+
+All feature branches have been successfully consolidated into the main branch, creating a production-ready codebase.
+
+#### Verification Summary
+- **Unit Tests**: 202 tests passing
+- **Security Audit**: 0 vulnerabilities
+- **Application Startup**: Verified successful
+- **Health Check**: Responding correctly
+
+#### Dependencies Updated
+- `jsonwebtoken`: ^8.5.1 → ^9.0.2 (security fix)
+- `multer`: 1.4.2 → ^1.4.5-lts.2 (CVE-2022-24434)
+- `express`: ^4.18.0 → ^4.21.2 (security patches)
+- `nodemailer`: ^6.9.0 → ^7.0.11 (security fix)
+- `puppeteer`: ^19.0.0 → ^24.6.1 (latest stable)
+- `supertest`: ^6.3.0 → ^7.1.3 (latest stable)
+
+#### Bug Fixes
+- Fixed `deleteAttachment` function missing from requestService
+- Fixed report queries using legacy table names instead of `nomenclature`
+- Fixed `removeRequestFromControl` not setting status to 'removed'
+- Fixed test data IDs to match actual seed data
+- Fixed audit logging for remove from control operations
 
 ### Phase 3: Documentation, OpenAPI, E2E Testing & UAT
 
