@@ -1,7 +1,6 @@
 const { getDb } = require('../db');
 const { NOTIFICATION_HOURS_BEFORE_DEADLINE } = require('../config');
 const { sendEmail, buildNotificationMessage } = require('../utils/notifications');
-const { getUserById } = require('../models/userModel');
 
 async function getRequestsDueSoon() {
   const db = getDb();

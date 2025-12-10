@@ -1,7 +1,7 @@
 const { insertRequest, updateRequest, getRequestById, listRequests, insertFiles, getFilesByRequestId, getFileById, logProceeding, logAction, deleteFileById } = require('../models/requestModel');
 const { findTypeById, findTopicById, findSocialGroupById, findIntakeFormById, findPriorityById } = require('../models/nomenclatureModel');
 const { calculateControlStatus } = require('../utils/deadline');
-const { notifyDeadlineStatus, sendEmail, buildNotificationMessage } = require('../utils/notifications');
+const { notifyDeadlineStatus } = require('../utils/notifications');
 const { clean } = require('../utils/sanitize');
 const { MAX_ATTACHMENTS, REQUEST_STATUSES, PRIORITIES } = require('../config');
 const { getDb } = require('../db');
@@ -433,6 +433,48 @@ async function getAttachmentById(fileId) {
   return file;
 }
 
+async function deleteAttachment(fileId, user) {
+  const file = await getFileById(fileId);
+  if (!file) {
+    return false;
+  }
+
+  // Delete from disk
+  await deleteFileIfExists(file.stored_name);
+
+  // Delete from database
+  await deleteFileById(fileId);
+
+  // Log audit entry
+  const timestamp = new Date().toISOString();
+  await logAuditEntry({
+    user_id: user ? user.userId : null,
+    request_id: file.request_id,
+    action: 'delete_attachment',
+    entity_type: 'attachment',
+    payload: {
+      file_id: fileId,
+      original_name: file.original_name,
+      deleted_by: user ? user.email : 'system'
+    },
+    created_at: timestamp
+  });
+
+  // Log proceeding
+  await logProceeding({
+    request_id: file.request_id,
+    action: 'delete_attachment',
+    details: JSON.stringify({
+      file_id: fileId,
+      original_name: file.original_name,
+      deleted_by: user ? user.email : 'system'
+    }),
+    created_at: timestamp
+  });
+
+  return true;
+}
+
 function triggerDeadlineNotification(requestId, record, status) {
   if (status === 'approaching' || status === 'overdue') {
     notifyDeadlineStatus(
@@ -466,24 +508,8 @@ async function removeRequestFromControl({ id, note, user }) {
 
   const now = new Date().toISOString();
   const updates = {
-    control_status: 'no', // Removed from control means no longer tracked for deadlines? Or special status?
-    // Phase 3 implementation implies setting fields but maybe not clearing control_status immediately if we track 'removed' as a status.
-    // Wait, the Phase 3 schema has 'removed_from_control_at'.
-    // Logic in Phase 3 `removeRequestFromControl` set `status` to `removed`? No, it sets `control_status` probably.
-    // Reading the snippet from conflict:
-    // updates = { status: 'removed', ... } -> This looks like it changes the REQUEST status to 'removed'? 
-    // Or maybe 'control_status' to 'removed'?
-    // "Request is already removed from control" implies `control_status`.
-    // But lines 485: `if (request.status === 'removed')` suggest checking `status`? 
-    // Usually 'removed from control' is a separate flag.
-    
-    // Let's assume the conflict snippet was checking request.control_status actually or the logic was about removing the request itself?
-    // "remove-request-from-control" usually means "snyat s kontrolya". It shouldn't delete the request.
-    
-    // I will stick to what Phase 3 `src/services/requestService.js` had.
-    // Since I can't read the full file (conflict markers obscured it), I have to guess or rely on `removed_from_control_at` presence.
-    
-    // Based on `removed_from_control_at` column existence, we update that.
+    status: 'removed',
+    control_status: 'no',
     removed_from_control_at: now,
     removed_from_control_by: userName,
     removed_from_control_by_user_id: user.userId
@@ -491,10 +517,30 @@ async function removeRequestFromControl({ id, note, user }) {
   
   await updateRequest(id, updates);
   
-  await logMutation(id, 'remove_from_control', {
-    note,
-    removed_by: userName,
-    removed_at: now
+  // Build notes string that includes "Removed from control" and the optional note
+  const notesMessage = note ? `Removed from control - ${note}` : 'Removed from control';
+  
+  // Log audit entry
+  await logAuditEntry({
+    user_id: user.userId,
+    request_id: id,
+    action: 'remove_from_control',
+    entity_type: 'request',
+    payload: {
+      note,
+      previous_status: request.status,
+      removed_by: userName,
+      removed_at: now
+    },
+    created_at: now
+  });
+  
+  // Log proceeding with plain text notes (not JSON) for test compatibility
+  await logProceeding({
+    request_id: id,
+    action: 'remove_from_control',
+    details: notesMessage,
+    created_at: now
   });
 
   return fetchRequestWithFiles(id);
@@ -507,6 +553,7 @@ module.exports = {
   fetchRequestWithFiles,
   fetchRequestsList,
   getAttachmentById,
+  deleteAttachment,
   refreshAllControlStatuses,
   removeRequestFromControl
 };
