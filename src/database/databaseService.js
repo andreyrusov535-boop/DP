@@ -209,7 +209,7 @@ class DatabaseService {
   /**
    * Rollback a transaction
    */
-  async rollback() {
+  async rollbackTransaction() {
     const db = this.getDatabase();
     await db.exec('ROLLBACK');
   }
@@ -226,7 +226,7 @@ class DatabaseService {
       await this.commit();
       return result;
     } catch (error) {
-      await this.rollback();
+      await this.rollbackTransaction();
       throw error;
     }
   }

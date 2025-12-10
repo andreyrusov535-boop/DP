@@ -23,7 +23,7 @@ async function getOverview(query, userId = null) {
   const typeBreakdown = await db.all(
     `SELECT rt.name as type_name, COUNT(*) as count 
      FROM requests r 
-     LEFT JOIN request_types rt ON r.request_type_id = rt.id 
+     LEFT JOIN nomenclature rt ON r.request_type_id = rt.id AND rt.type = 'request_type'
      ${whereClause} 
      GROUP BY r.request_type_id, rt.name 
      ORDER BY count DESC`,
@@ -33,7 +33,7 @@ async function getOverview(query, userId = null) {
   const topicBreakdown = await db.all(
     `SELECT rtop.name as topic_name, COUNT(*) as count 
      FROM requests r 
-     LEFT JOIN request_topics rtop ON r.request_topic_id = rtop.id 
+     LEFT JOIN nomenclature rtop ON r.request_topic_id = rtop.id AND rtop.type = 'topic'
      ${whereClause} 
      GROUP BY r.request_topic_id, rtop.name 
      ORDER BY count DESC`,
@@ -67,7 +67,7 @@ async function getOverview(query, userId = null) {
   const socialGroupBreakdown = await db.all(
     `SELECT sg.name as social_group_name, COUNT(*) as count 
      FROM requests r 
-     LEFT JOIN social_groups sg ON r.social_group_id = sg.id 
+     LEFT JOIN nomenclature sg ON r.social_group_id = sg.id AND sg.type = 'social_group'
      ${whereClause} 
      GROUP BY r.social_group_id, sg.name 
      ORDER BY count DESC`,
@@ -77,7 +77,7 @@ async function getOverview(query, userId = null) {
   const intakeFormBreakdown = await db.all(
     `SELECT inf.name as intake_form_name, COUNT(*) as count 
      FROM requests r 
-     LEFT JOIN intake_forms inf ON r.intake_form_id = inf.id 
+     LEFT JOIN nomenclature inf ON r.intake_form_id = inf.id AND inf.type = 'intake_form'
      ${whereClause} 
      GROUP BY r.intake_form_id, inf.name 
      ORDER BY count DESC`,
