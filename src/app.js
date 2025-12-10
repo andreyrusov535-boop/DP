@@ -15,7 +15,7 @@ const sampleRouter = require('./routes/sample');
 const reportsRouter = require('./routes/reports');
 const { ensureUploadDir } = require('./utils/fileStorage');
 const { scheduleDeadlineRefresh, runDeadlineRefreshOnce } = require('./jobs/deadlineJob');
-const { scheduleNotificationJob, runNotificationJobOnce } = require('./jobs/notificationJob');
+const { scheduleNotificationJob } = require('./jobs/notificationJob');
 
 const app = express();
 

@@ -1,7 +1,7 @@
 const { insertRequest, updateRequest, getRequestById, listRequests, insertFiles, getFilesByRequestId, getFileById, logProceeding, logAction, deleteFileById } = require('../models/requestModel');
 const { findTypeById, findTopicById, findSocialGroupById, findIntakeFormById, findPriorityById } = require('../models/nomenclatureModel');
 const { calculateControlStatus } = require('../utils/deadline');
-const { notifyDeadlineStatus, sendEmail, buildNotificationMessage } = require('../utils/notifications');
+const { notifyDeadlineStatus } = require('../utils/notifications');
 const { clean } = require('../utils/sanitize');
 const { MAX_ATTACHMENTS, REQUEST_STATUSES, PRIORITIES } = require('../config');
 const { getDb } = require('../db');

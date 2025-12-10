@@ -32,7 +32,7 @@ const results = {
 /**
  * Make HTTP request and measure response time
  */
-function makeRequest(options) {
+function makeRequest(options, body = null) {
   return new Promise((resolve, reject) => {
     const startTime = Date.now();
     const req = http.request(options, (res) => {
@@ -54,6 +54,11 @@ function makeRequest(options) {
 
     req.on('error', reject);
     req.setTimeout(15000); // 15 second timeout
+    
+    if (body) {
+      req.write(JSON.stringify(body));
+    }
+    
     req.end();
   });
 }
@@ -61,7 +66,7 @@ function makeRequest(options) {
 /**
  * Test a single endpoint
  */
-async function testEndpoint(name, method, path, headers = {}) {
+async function testEndpoint(name, method, path, headers = {}, body = null) {
   console.log(`\nTesting: ${name}`);
   console.log(`  ${method} ${path}`);
 
@@ -78,7 +83,7 @@ async function testEndpoint(name, method, path, headers = {}) {
   };
 
   try {
-    const response = await makeRequest(options);
+    const response = await makeRequest(options, body);
     const target = SLA_TARGETS[name.toLowerCase().replace(/\s+/g, '_')];
 
     console.log(`  Status: ${response.statusCode}`);
@@ -145,12 +150,28 @@ async function runTests() {
   await testEndpoint('Requests List', 'GET', '/api/requests?page=1&limit=20');
 
   // Test 4: Create Request
-  await testEndpoint('Requests Create', 'POST', '/api/requests', {
+  const createResponse = await testEndpoint('Requests Create', 'POST', '/api/requests', {
     'Content-Type': 'application/json'
+  }, {
+    citizenFio: 'Test Citizen',
+    description: 'Performance Test Request',
+    status: 'new',
+    priority: 'medium'
   });
 
+  // Extract ID for next test
+  let requestId = 1;
+  if (createResponse && createResponse.statusCode === 201) {
+     try {
+       const data = JSON.parse(createResponse.data);
+       requestId = data.id;
+     } catch (e) { 
+       console.error('Failed to parse create response', e); 
+     }
+  }
+
   // Test 5: Get Single Request
-  await testEndpoint('Requests Single', 'GET', '/api/requests/1');
+  await testEndpoint('Requests Single', 'GET', `/api/requests/${requestId}`);
 
   // Test 6: Request Types
   await testEndpoint('Nomenclature', 'GET', '/api/nomenclature/types');
