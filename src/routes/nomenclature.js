@@ -83,6 +83,24 @@ router.get('/receipt-forms', async (_req, res, next) => {
   }
 });
 
+router.get('/intake-forms', async (_req, res, next) => {
+  try {
+    const data = await fetchIntakeForms();
+    res.json({ intakeForms: data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/social-groups', async (_req, res, next) => {
+  try {
+    const data = await fetchSocialGroups();
+    res.json({ socialGroups: data });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get('/executors', async (_req, res, next) => {
   try {
     const data = await fetchExecutors();
