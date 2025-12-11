@@ -3,6 +3,8 @@ const UI = (() => {
     let currentModal = null;
     let focusTrapCleanup = null;
     let virtualScrollInstance = null;
+    const modalDataCache = new Map();
+    const CACHE_TTL = 15 * 60 * 1000; // 15 minutes cache TTL
 
     const showNotification = (message, type = 'info', duration = 5000) => {
         const container = document.getElementById('notification-container');
@@ -353,6 +355,7 @@ const UI = (() => {
 
     const renderViewModal = (request) => {
         const container = document.getElementById('view-content');
+        if (!container) return;
 
         const deadlineStatus = request.deadline ? Utils.getDeadlineStatus(request.deadline) : null;
         const deadlineBadge = deadlineStatus ? `
@@ -367,19 +370,19 @@ const UI = (() => {
             <div style="display: grid; gap: 1rem;">
                 <div>
                     <strong>Description:</strong>
-                    <p>${Utils.escapeHtml(request.description)}</p>
+                    <p>${Utils.escapeHtml(request.description || 'N/A')}</p>
                 </div>
                 <div>
                     <strong>Type:</strong>
-                    <p>${Utils.capitalizeFirstLetter(request.type)}</p>
+                    <p>${Utils.capitalizeFirstLetter(request.type || '') || 'N/A'}</p>
                 </div>
                 <div>
                     <strong>Location:</strong>
-                    <p>${Utils.escapeHtml(request.location)}</p>
+                    <p>${Utils.escapeHtml(request.location || 'N/A')}</p>
                 </div>
                 <div>
                     <strong>Status:</strong>
-                    <p><span class="badge badge-status-${request.status}">${Utils.capitalizeFirstLetter(request.status)}</span></p>
+                    <p><span class="badge badge-status-${request.status || 'unknown'}">${Utils.capitalizeFirstLetter(request.status || '') || 'Unknown'}</span></p>
                 </div>
                 ${request.executor ? `
                     <div>
@@ -389,7 +392,7 @@ const UI = (() => {
                 ` : ''}
                 <div>
                     <strong>Created:</strong>
-                    <p>${Utils.formatDateTime(request.created_at)}</p>
+                    <p>${Utils.formatDateTime(request.created_at || '')}</p>
                 </div>
                 ${request.deadline ? `
                     <div>
@@ -700,6 +703,31 @@ const UI = (() => {
         clearMessage('ref-edit-message');
     };
 
+    // Cache management functions
+    const getCachedModalData = (cacheKey) => {
+        const cachedData = modalDataCache.get(cacheKey);
+        if (!cachedData) return null;
+        
+        // Check if cache is still valid
+        if (Date.now() - cachedData.timestamp > CACHE_TTL) {
+            modalDataCache.delete(cacheKey);
+            return null;
+        }
+        
+        return cachedData.data;
+    };
+
+    const setCachedModalData = (cacheKey, data) => {
+        modalDataCache.set(cacheKey, {
+            data,
+            timestamp: Date.now()
+        });
+    };
+
+    const clearModalCache = () => {
+        modalDataCache.clear();
+    };
+
     return {
         showNotification,
         showMessage,
@@ -727,6 +755,9 @@ const UI = (() => {
         clearReferenceDataForm,
         openReferenceDataEditModal,
         closeReferenceDataEditModal,
+        getCachedModalData,
+        setCachedModalData,
+        clearModalCache,
     };
 })();
 
