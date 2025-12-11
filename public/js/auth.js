@@ -52,8 +52,13 @@ const Auth = (() => {
 
             const data = await response.json();
 
-            setTokens(data.access_token, data.refresh_token);
-            userInfo = data.user;
+            setTokens(data.accessToken, data.refreshToken);
+            userInfo = {
+                userId: data.userId,
+                email: data.email,
+                name: data.name,
+                role: data.role
+            };
             sessionStorage.setItem(CONFIG.STORAGE_KEYS.USER_INFO, JSON.stringify(userInfo));
 
             setupTokenRefresh();
@@ -80,8 +85,13 @@ const Auth = (() => {
 
             const data = await response.json();
 
-            setTokens(data.access_token, data.refresh_token);
-            userInfo = data.user;
+            setTokens(data.accessToken, data.refreshToken);
+            userInfo = {
+                userId: data.userId,
+                email: data.email,
+                name: data.name,
+                role: data.role
+            };
             sessionStorage.setItem(CONFIG.STORAGE_KEYS.USER_INFO, JSON.stringify(userInfo));
 
             setupTokenRefresh();
@@ -112,7 +122,7 @@ const Auth = (() => {
             }
 
             const data = await response.json();
-            setTokens(data.access_token, refreshToken);
+            setTokens(data.accessToken, data.refreshToken);
             return true;
         } catch (error) {
             console.error('Token refresh failed:', error);
