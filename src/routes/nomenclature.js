@@ -6,13 +6,39 @@ const {
   fetchTopicsByType,
   fetchReceiptForms,
   fetchExecutors,
-  fetchPriorities
+  fetchPriorities,
+  fetchSocialGroups,
+  fetchIntakeForms
 } = require('../services/nomenclatureService');
 
 const router = express.Router();
 
-router.get('/', async (_req, res, next) => {
+router.get('/', async (req, res, next) => {
   try {
+    const entity = req.query.entity;
+    
+    // If entity parameter is provided, return only that entity
+    if (entity === 'request_types') {
+      const data = await fetchTypes();
+      return res.json({ types: data });
+    } else if (entity === 'request_topics') {
+      const data = await fetchTopics();
+      return res.json({ topics: data });
+    } else if (entity === 'receipt_forms' || entity === 'intake_forms') {
+      const data = await fetchIntakeForms();
+      return res.json({ intakeForms: data });
+    } else if (entity === 'social_groups') {
+      const data = await fetchSocialGroups();
+      return res.json({ socialGroups: data });
+    } else if (entity === 'executors') {
+      const data = await fetchExecutors();
+      return res.json({ executors: data });
+    } else if (entity === 'priorities') {
+      const data = await fetchPriorities();
+      return res.json({ priorities: data });
+    }
+    
+    // If no entity specified, return all nomenclature
     const data = await fetchNomenclature();
     res.json(data);
   } catch (error) {

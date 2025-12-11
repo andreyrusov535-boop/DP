@@ -13,6 +13,7 @@ const nomenclatureAdminRouter = require('./routes/nomenclatureAdmin');
 const filesRouter = require('./routes/files');
 const sampleRouter = require('./routes/sample');
 const reportsRouter = require('./routes/reports');
+const statsRouter = require('./routes/stats');
 const { ensureUploadDir } = require('./utils/fileStorage');
 const { scheduleDeadlineRefresh, runDeadlineRefreshOnce } = require('./jobs/deadlineJob');
 const { scheduleNotificationJob } = require('./jobs/notificationJob');
@@ -98,6 +99,7 @@ app.use('/api/nomenclature', nomenclatureRouter);
 app.use('/api/nomenclature-admin', nomenclatureAdminRouter);
 app.use('/api/files', filesRouter);
 app.use('/api/sample', sampleRouter);
+app.use('/api/stats', statsRouter);
 app.use('/api/reports', reportsRouter);
 
 // Serve static files from the public directory
