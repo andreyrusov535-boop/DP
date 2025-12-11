@@ -408,19 +408,8 @@ const UI = (() => {
         `;
     };
 
-    const showModal = (modalId) => {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.style.display = 'flex';
-        }
-    };
+    // Duplicates removed
 
-    const hideModal = (modalId) => {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.style.display = 'none';
-        }
-    };
 
     const showLoadingState = (show = true) => {
         const loadingIndicator = document.getElementById('loading-indicator');
@@ -740,3 +729,7 @@ const UI = (() => {
         closeReferenceDataEditModal,
     };
 })();
+
+// Make UI available globally
+window.UI = UI;
+
