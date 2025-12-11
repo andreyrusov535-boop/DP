@@ -354,7 +354,8 @@ const UI = (() => {
     const renderViewModal = (request) => {
         const container = document.getElementById('view-content');
 
-        const deadlineStatus = request.deadline ? Utils.getDeadlineStatus(request.deadline) : null;
+        const dueDate = request.dueDate || request.deadline;
+        const deadlineStatus = dueDate ? Utils.getDeadlineStatus(dueDate) : null;
         const deadlineBadge = deadlineStatus ? `
             <div style="margin-top: 1rem;">
                 <span class="badge badge-deadline-${deadlineStatus.status}">
@@ -363,45 +364,62 @@ const UI = (() => {
             </div>
         ` : '';
 
+        const typeDisplay = request.requestType ? request.requestType.name : '';
+        const createdDate = request.createdAt || request.created_at;
+        const address = request.address || request.location;
+        const statusValue = request.status || '';
+
         container.innerHTML = `
             <div style="display: grid; gap: 1rem;">
                 <div>
                     <strong>Description:</strong>
-                    <p>${Utils.escapeHtml(request.description)}</p>
+                    <p>${Utils.escapeHtml(request.description || '')}</p>
                 </div>
-                <div>
-                    <strong>Type:</strong>
-                    <p>${Utils.capitalizeFirstLetter(request.type)}</p>
-                </div>
-                <div>
-                    <strong>Location:</strong>
-                    <p>${Utils.escapeHtml(request.location)}</p>
-                </div>
-                <div>
-                    <strong>Status:</strong>
-                    <p><span class="badge badge-status-${request.status}">${Utils.capitalizeFirstLetter(request.status)}</span></p>
-                </div>
+                ${typeDisplay ? `
+                    <div>
+                        <strong>Type:</strong>
+                        <p>${Utils.escapeHtml(typeDisplay)}</p>
+                    </div>
+                ` : ''}
+                ${address ? `
+                    <div>
+                        <strong>Location:</strong>
+                        <p>${Utils.escapeHtml(address)}</p>
+                    </div>
+                ` : ''}
+                ${statusValue ? `
+                    <div>
+                        <strong>Status:</strong>
+                        <p><span class="badge badge-status-${statusValue}">${Utils.capitalizeFirstLetter(statusValue)}</span></p>
+                    </div>
+                ` : ''}
                 ${request.executor ? `
                     <div>
                         <strong>Assigned to:</strong>
                         <p>${Utils.escapeHtml(request.executor)}</p>
                     </div>
                 ` : ''}
-                <div>
-                    <strong>Created:</strong>
-                    <p>${Utils.formatDateTime(request.created_at)}</p>
-                </div>
-                ${request.deadline ? `
+                ${createdDate ? `
+                    <div>
+                        <strong>Created:</strong>
+                        <p>${Utils.formatDateTime(createdDate)}</p>
+                    </div>
+                ` : ''}
+                ${dueDate ? `
                     <div>
                         <strong>Deadline:</strong>
-                        <p>${Utils.formatDateTime(request.deadline)}</p>
+                        <p>${Utils.formatDateTime(dueDate)}</p>
                         ${deadlineBadge}
                     </div>
                 ` : ''}
-                ${request.attachment_url ? `
+                ${request.attachments && request.attachments.length > 0 ? `
                     <div>
-                        <strong>Attachment:</strong>
-                        <p><a href="${request.attachment_url}" target="_blank" rel="noopener noreferrer">Download</a></p>
+                        <strong>Attachments:</strong>
+                        <ul>
+                            ${request.attachments.map(att => `
+                                <li><a href="${att.downloadUrl}" target="_blank" rel="noopener noreferrer">${Utils.escapeHtml(att.originalName)}</a></li>
+                            `).join('')}
+                        </ul>
                     </div>
                 ` : ''}
             </div>

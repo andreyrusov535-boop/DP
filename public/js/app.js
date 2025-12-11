@@ -9,6 +9,7 @@ const App = (() => {
     let currentReportFilters = {};
     let debouncedLoadRequests = null;
     let abortController = null;
+    let requestCache = {}; // Cache for fetched requests to avoid duplicate API calls
 
     const init = () => {
         // Initialize debounced function for filters
@@ -677,7 +678,13 @@ const App = (() => {
 
     const openEditModal = async (requestId) => {
         try {
-            const request = await API.requests.get(requestId);
+            // Use cached request if available, otherwise fetch from API
+            let request = requestCache[requestId];
+            if (!request) {
+                request = await API.requests.get(requestId);
+                requestCache[requestId] = request; // Cache the request
+            }
+
             const userRole = Auth.getUserInfo()?.role || CONFIG.ROLES.CITIZEN;
 
             // Populate form
@@ -763,6 +770,8 @@ const App = (() => {
 
         try {
             await API.requests.update(requestId, updateData);
+            // Clear cache for this request to force fresh fetch next time
+            delete requestCache[requestId];
             UI.showNotification('Request updated successfully!', 'success');
             UI.hideModal('edit-modal');
             loadRequests();
@@ -779,6 +788,8 @@ const App = (() => {
 
         try {
             await API.requests.delete(requestId);
+            // Clear cache for this request
+            delete requestCache[requestId];
             UI.showNotification('Request deleted successfully!', 'success');
             loadRequests();
         } catch (error) {
@@ -789,7 +800,12 @@ const App = (() => {
 
     const openViewModal = async (requestId) => {
         try {
-            const request = await API.requests.get(requestId);
+            // Use cached request if available, otherwise fetch from API
+            let request = requestCache[requestId];
+            if (!request) {
+                request = await API.requests.get(requestId);
+                requestCache[requestId] = request; // Cache the request
+            }
             UI.renderViewModal(request);
             UI.showModal('view-modal');
         } catch (error) {
