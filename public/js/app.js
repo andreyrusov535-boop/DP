@@ -262,7 +262,7 @@ const App = (() => {
 
     const loadNomenclature = async () => {
         try {
-            const response = await API.request('/api/nomenclature');
+            const response = await API.request('/nomenclature');
             const { types, topics, socialGroups, intakeForms } = response;
 
             // Populate request type selects
@@ -787,7 +787,7 @@ const App = (() => {
 
     const loadReportNomenclature = async () => {
         try {
-            const response = await API.request('/api/nomenclature');
+            const response = await API.request('/nomenclature');
             const { types, intakeForms } = response;
 
             const reportTypeSelect = document.getElementById('report-filter-type');
