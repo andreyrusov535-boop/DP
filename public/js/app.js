@@ -262,14 +262,27 @@ const App = (() => {
 
     const loadNomenclature = async () => {
         try {
-            const response = await API.request('/nomenclature');
-            const { types, topics, socialGroups, intakeForms } = response;
+            // Load request types
+            const typesResponse = await API.nomenclature.getTypes();
+            const types = typesResponse.types || [];
+
+            // Load social groups
+            const socialGroupsResponse = await API.nomenclature.getSocialGroups();
+            const socialGroups = socialGroupsResponse.socialGroups || [];
+
+            // Load intake forms
+            const intakeFormsResponse = await API.nomenclature.getIntakeForms();
+            const intakeForms = intakeFormsResponse.intakeForms || [];
 
             // Populate request type selects
             const typeSelects = ['filter-type', 'create-type', 'edit-type'];
             typeSelects.forEach(selectId => {
                 const select = document.getElementById(selectId);
                 if (select) {
+                    // Clear existing options except the first one
+                    while (select.children.length > 1) {
+                        select.removeChild(select.lastChild);
+                    }
                     types.forEach(type => {
                         const option = document.createElement('option');
                         option.value = type.id;

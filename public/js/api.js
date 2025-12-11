@@ -369,6 +369,33 @@ const API = (() => {
         },
     };
 
+    const nomenclature = {
+        get: (entity) => {
+            return request(`/nomenclature?entity=${encodeURIComponent(entity)}`);
+        },
+        getTypes: () => {
+            return request('/nomenclature/types');
+        },
+        getTopics: () => {
+            return request('/nomenclature/topics');
+        },
+        getTopicsByType: (typeId) => {
+            return request(`/nomenclature/topics/by-type/${typeId}`);
+        },
+        getIntakeForms: () => {
+            return request('/nomenclature/intake-forms');
+        },
+        getSocialGroups: () => {
+            return request('/nomenclature?entity=social_groups');
+        },
+        getExecutors: () => {
+            return request('/nomenclature?entity=executors');
+        },
+        getPriorities: () => {
+            return request('/nomenclature?entity=priorities');
+        }
+    };
+
     return {
         request,
         requests,
@@ -376,6 +403,7 @@ const API = (() => {
         stats,
         nomenclatureAdmin,
         reports,
+        nomenclature,
         getCsrfToken,
     };
 })();
