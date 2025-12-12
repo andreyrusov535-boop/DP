@@ -774,6 +774,8 @@ const App = (() => {
             delete requestCache[requestId];
             UI.showNotification('Request updated successfully!', 'success');
             UI.hideModal('edit-modal');
+            // Clear cache for this request to ensure fresh data on next view
+            UI.clearModalCache();
             loadRequests();
         } catch (error) {
             console.error('Failed to update request:', error);
@@ -791,6 +793,8 @@ const App = (() => {
             // Clear cache for this request
             delete requestCache[requestId];
             UI.showNotification('Request deleted successfully!', 'success');
+            // Clear cache for this request since it's deleted
+            UI.clearModalCache();
             loadRequests();
         } catch (error) {
             console.error('Failed to delete request:', error);
@@ -800,12 +804,13 @@ const App = (() => {
 
     const openViewModal = async (requestId) => {
         try {
-            // Use cached request if available, otherwise fetch from API
-            let request = requestCache[requestId];
-            if (!request) {
-                request = await API.requests.get(requestId);
-                requestCache[requestId] = request; // Cache the request
-            }
+const cacheKey = `request_${requestId}`;
+let request = UI.getCachedModalData(cacheKey);
+
+if (!request) {
+    request = await API.requests.get(requestId);
+    UI.setCachedModalData(cacheKey, request);
+}
             UI.renderViewModal(request);
             UI.showModal('view-modal');
         } catch (error) {
