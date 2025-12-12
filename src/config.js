@@ -30,8 +30,9 @@ module.exports = {
   BCRYPT_ROUNDS: parseInt(process.env.BCRYPT_ROUNDS || '10', 10),
 
   // Rate Limiting
+  // 15 minute window, 300 total requests (allows ~20 requests/second or 300 requests/15min)
   RATE_LIMIT_WINDOW_MS: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10),
-  RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10),
+  RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '300', 10),
 
   // Request Constants
   DEADLINE_APPROACHING_THRESHOLD_HOURS: 48,
